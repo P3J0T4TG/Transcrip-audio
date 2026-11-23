@@ -1,0 +1,2250 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Transcriptor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F5F2;
+    --sheet: #FFFFFF;
+    --ink: #18211D;
+    --graphite: #5D6761;
+    --rule: #D5DAD4;
+    --rule-strong: #AEB6B0;
+    --signal: #2747E8;
+    --signal-ink: #FFFFFF;
+    --signal-soft: #E6EAFD;
+    --alert: #B3261E;
+    --alert-soft: #FBEAE8;
+    --ok: #2E7D4F;
+    --ui: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --read: "Literata", Georgia, "Times New Roman", serif;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151A18;
+      --sheet: #1D2321;
+      --ink: #E6EBE7;
+      --graphite: #9BA59F;
+      --rule: #2F3734;
+      --rule-strong: #4C5651;
+      --signal: #8C9EFF;
+      --signal-ink: #0E1330;
+      --signal-soft: #232B4D;
+      --alert: #FF8F85;
+      --alert-soft: #3A2220;
+      --ok: #7BC79A;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 15px/1.5 var(--ui);
+    -webkit-font-smoothing: antialiased;
+  }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  a { color: var(--signal); }
+
+  /* Cabecera */
+  .top {
+    max-width: 1240px; margin: 0 auto; padding: 26px 32px 18px;
+    display: flex; align-items: baseline; gap: 8px 22px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--rule);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { width: 30px; height: 22px; color: var(--signal); flex: none; transform: translateY(2px); }
+  .brand h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .tagline { margin: 0; color: var(--graphite); max-width: 62ch; }
+
+  /* Rejilla principal */
+  .layout {
+    max-width: 1240px; margin: 0 auto; padding: 0 32px 56px;
+    display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 44px;
+  }
+  .panel { padding-top: 26px; }
+  .viewer { padding-top: 26px; min-width: 0; }
+
+  .step { padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--rule); }
+  .step h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; display: flex; gap: 10px; align-items: baseline; }
+  .step h2 .n { color: var(--signal); font-variant-numeric: tabular-nums; min-width: 0.8em; }
+
+  label.field { display: block; font-weight: 500; margin: 16px 0 6px; }
+  label.field .opt { color: var(--graphite); font-weight: 400; }
+  input[type=password], input[type=text], select, textarea.plain {
+    font: inherit; color: inherit; background: var(--sheet);
+    border: 1px solid var(--rule-strong); border-radius: 6px;
+    padding: 9px 11px; width: 100%;
+  }
+  textarea.plain { resize: vertical; min-height: 64px; }
+  select { appearance: auto; }
+  input:disabled, select:disabled, textarea:disabled { opacity: .6; }
+  .check { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0; cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--signal); flex: none; }
+  .hint { margin: 8px 0 0; color: var(--graphite); font-size: 13.5px; }
+  .keystate { display: flex; gap: 6px; align-items: flex-start; }
+  .keystate svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+  .keystate.ok { color: var(--ok); }
+  .keystate.error { color: var(--alert); }
+
+  details.help { margin-top: 14px; }
+  details.help summary { cursor: pointer; color: var(--signal); font-weight: 500; }
+  details.help ol { margin: 10px 0 0; padding-left: 1.3em; color: var(--graphite); }
+  details.help li { margin-bottom: 4px; }
+
+  .fileinfo { margin: 0 0 12px; overflow-wrap: anywhere; }
+  .fileinfo strong { display: block; font-weight: 700; }
+  .fileinfo span { color: var(--graphite); font-size: 14px; }
+
+  /* Botones */
+  button { font: inherit; cursor: pointer; color: inherit; }
+  button:disabled { cursor: not-allowed; }
+  .btn { border-radius: 8px; padding: 10px 16px; font-weight: 700; border: 1px solid transparent; line-height: 1.2; }
+  .btn-primary { background: var(--signal); color: var(--signal-ink); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-primary:disabled { background: var(--rule); color: var(--graphite); }
+  .btn-secondary { background: transparent; border-color: var(--rule-strong); }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--ink); }
+  .btn-secondary:disabled { color: var(--graphite); opacity: .7; }
+  .btn-quiet { background: transparent; border: 0; color: var(--signal); padding: 8px 6px; font-weight: 500; border-radius: 6px; }
+  .btn-quiet:hover:not(:disabled) { background: var(--signal-soft); }
+  .btn-quiet:disabled { color: var(--graphite); opacity: .6; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions .btn { flex: 1; min-width: 120px; padding: 12px 16px; font-size: 16px; }
+  .privacy { margin: 14px 0 0; color: var(--graphite); font-size: 13.5px; }
+
+  /* Zona de carga */
+  .drop {
+    border: 1.5px dashed var(--rule-strong); border-radius: 10px;
+    min-height: 460px; padding: 48px 32px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    text-align: center; color: var(--graphite); cursor: pointer;
+  }
+  .drop.over { border-color: var(--signal); background: var(--signal-soft); color: var(--ink); }
+  .drop svg.idle { width: min(360px, 80%); height: 56px; color: var(--rule-strong); }
+  .drop.over svg.idle { color: var(--signal); }
+  .drop .big { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 700; color: var(--ink); max-width: 20ch; }
+  .drop .formats { margin: 0; font-size: 13.5px; max-width: 46ch; }
+
+  /* Visor */
+  .media video { display: block; width: 100%; max-height: 360px; background: #000; border-radius: 6px; }
+  .media audio { display: block; width: 100%; }
+
+  .tape { position: relative; margin: 20px 0 8px; }
+  .tape canvas { display: block; width: 100%; height: 84px; cursor: pointer; touch-action: none; }
+  .tip {
+    position: absolute; top: -30px; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); font-size: 12.5px; padding: 3px 8px;
+    border-radius: 4px; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums;
+  }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--graphite); margin: 0 0 14px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .statusline { display: flex; justify-content: space-between; gap: 4px 16px; flex-wrap: wrap; align-items: baseline; }
+  #status { margin: 0; }
+  #statusAside { margin: 0; color: var(--graphite); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .progress { height: 3px; background: var(--rule); border-radius: 2px; overflow: hidden; margin-top: 10px; }
+  .progress span { display: block; height: 100%; width: 0; background: var(--signal); transition: width .4s ease; }
+  .progress.indeterminate span { width: 28%; animation: slide 1.3s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-110%); } to { transform: translateX(370%); } }
+
+  .notice {
+    margin: 16px 0 0; padding: 12px 14px; border-left: 3px solid var(--alert);
+    background: var(--alert-soft); border-radius: 0 6px 6px 0;
+  }
+  .notice p { margin: 0; }
+  .notice .detail { margin-top: 6px; font-size: 13px; color: var(--graphite); overflow-wrap: anywhere; }
+  .notice .report { margin-top: 10px; }
+  .notice .report summary { cursor: pointer; color: var(--signal); font-weight: 500; }
+  .notice .report pre {
+    margin: 8px 0; padding: 10px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px;
+    font: 12.5px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere;
+    max-height: 320px; overflow: auto; color: var(--ink);
+  }
+
+  .tabs { display: flex; gap: 2px; margin-top: 26px; border-bottom: 1px solid var(--rule); }
+  .tab {
+    background: none; border: 0; padding: 10px 14px; color: var(--graphite); font-weight: 700;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab[aria-selected=true] { color: var(--ink); border-bottom-color: var(--ink); }
+  .sheet {
+    background: var(--sheet); border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 6px 6px;
+    height: min(62vh, 660px); overflow: auto; padding: 28px clamp(18px, 4vw, 44px);
+  }
+  .reading { font: 400 17px/1.7 var(--read); max-width: 68ch; }
+  .reading p { margin: 0 0 0.95em; }
+  .ts {
+    font: 500 13px/1 var(--ui); font-variant-numeric: tabular-nums; color: var(--graphite);
+    background: none; border: 0; padding: 3px 5px; margin: 0 6px 0 -5px; border-radius: 4px; vertical-align: 1px;
+  }
+  .ts:hover { color: var(--signal); background: var(--signal-soft); }
+  .seg.active > p:last-child::after {
+    content: ""; display: inline-block; width: .5em; height: 1em; margin-left: 3px;
+    background: var(--signal); vertical-align: -2px; animation: blink 1s steps(2, start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+  .empty { font: 400 15px/1.5 var(--ui); color: var(--graphite); margin: 0; }
+  textarea.editor {
+    display: block; width: 100%; height: 100%; min-height: 100%; border: 0; resize: none; outline: none;
+    background: transparent; color: inherit; font: 400 17px/1.7 var(--read); padding: 0;
+  }
+
+  .exports { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+  .exports .spacer { flex: 1; }
+
+  @media (max-width: 920px) {
+    .top { padding: 20px; }
+    .layout { grid-template-columns: 1fr; gap: 0; padding: 0 20px 40px; }
+    .drop { min-height: 300px; }
+    .sheet { height: 70vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+      <path d="M2 10v4M6 6v12M10 9v6M14 3v18"/>
+      <path d="M19 7h11M19 12h11M19 17h7"/>
+    </svg>
+    <h1>Transcriptor</h1>
+  </div>
+  <p class="tagline">Pasa a texto lo que se dice en un vídeo o un audio. Funciona en este navegador con Whisper, un modelo abierto: el audio no sale de tu ordenador y no hace falta ninguna clave.</p>
+</header>
+
+<main class="layout">
+  <aside class="panel">
+    <section class="step" aria-labelledby="h-model">
+      <h2 id="h-model"><span class="n">1</span>Modelo de Whisper</h2>
+      <label class="field" for="model" style="margin-top:0">Modelo</label>
+      <select id="model">
+        <option value="onnx-community/whisper-tiny">Tiny: el más rápido, calidad básica</option>
+        <option value="onnx-community/whisper-base">Base: rápido, calidad media</option>
+        <option value="onnx-community/whisper-small" selected>Small: buen equilibrio (recomendado)</option>
+        <option value="onnx-community/whisper-large-v3-turbo">Large v3 Turbo: el más preciso, descarga grande</option>
+      </select>
+      <label class="field" for="device">Procesador</label>
+      <select id="device">
+        <option value="auto">Automático (la GPU si el navegador la permite)</option>
+        <option value="webgpu">GPU (WebGPU)</option>
+        <option value="wasm">CPU (más lenta)</option>
+      </select>
+      <p id="devHint" class="hint"></p>
+      <p id="modelStatus" class="hint keystate" role="status"></p>
+      <details class="help">
+        <summary>Si el texto sale raro o no avanza</summary>
+        <ol>
+          <li>Si salen símbolos o frases sin sentido, cambia el procesador a CPU: algunas combinaciones de GPU y navegador fallan.</li>
+          <li>Si el navegador se queda sin memoria, elige un modelo más pequeño.</li>
+          <li>Whisper escribe en el idioma que elijas en el paso 3. Si no coincide con el del audio, el resultado será inventado o traducido.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="step" aria-labelledby="h-file">
+      <h2 id="h-file"><span class="n">2</span>Vídeo o audio</h2>
+      <div id="fileInfo" class="fileinfo"><span>Todavía no has elegido ningún archivo.</span></div>
+      <button id="pickFile" class="btn btn-secondary" type="button">Elegir archivo</button>
+      <input type="file" id="fileInput" accept="video/*,audio/*,.mp4,.mov,.m4v,.webm,.mkv,.mp3,.m4a,.wav,.ogg,.opus,.flac,.aac" hidden>
+    </section>
+
+    <section class="step" aria-labelledby="h-opt">
+      <h2 id="h-opt"><span class="n">3</span>Opciones</h2>
+      <label class="field" for="lang" style="margin-top:0">Idioma del audio</label>
+      <select id="lang">
+        <option value="es">Español</option>
+        <option value="en">Inglés</option>
+        <option value="ca">Catalán</option>
+        <option value="gl">Gallego</option>
+        <option value="eu">Euskera</option>
+        <option value="fr">Francés</option>
+        <option value="pt">Portugués</option>
+        <option value="it">Italiano</option>
+        <option value="de">Alemán</option>
+      </select>
+      <label class="check"><input type="checkbox" id="optTimestamps" checked> <span>Añadir marcas de tiempo</span></label>
+      <label class="field" for="terms">Nombres o términos que aparecen <span class="opt">(opcional)</span></label>
+      <textarea id="terms" class="plain" rows="2" placeholder="Por ejemplo: Montilla-Moriles, NDVI, Pedro Ximénez"></textarea>
+      <p class="hint">Si Whisper los escribe mal, se corrigen con tu ortografía al terminar cada parte. Sirve para pequeñas diferencias de letras o tildes.</p>
+    </section>
+
+    <div class="actions">
+      <button id="startBtn" class="btn btn-primary" type="button" disabled>Transcribir</button>
+      <button id="stopBtn" class="btn btn-secondary" type="button" hidden>Detener</button>
+    </div>
+    <p class="privacy">El audio se transcribe en este navegador y no se envía a ningún servidor. Solo se descargan la librería y el modelo, la primera vez. No cierres esta pestaña mientras trabaja.</p>
+  </aside>
+
+  <section class="viewer" aria-label="Visor">
+    <div id="dropZone" class="drop" role="region" aria-label="Zona para soltar el archivo">
+      <svg class="idle" id="idleWave" viewBox="0 0 360 56" aria-hidden="true"></svg>
+      <p class="big">Arrastra aquí un vídeo o un audio</p>
+      <button id="dropPick" class="btn btn-primary" type="button">Elegir archivo</button>
+      <p class="formats">MP4, MOV, M4A, MP3, WAV, WEBM, OGG o FLAC. Los MP4 y MP3 pueden ser grandes; del vídeo solo se lee el sonido.</p>
+    </div>
+
+    <div id="workspace" hidden>
+      <div class="media">
+        <video id="video" controls preload="metadata" hidden></video>
+        <audio id="audio" controls preload="metadata" hidden></audio>
+      </div>
+
+      <div class="tape">
+        <canvas id="wave" role="img" aria-label="Forma de onda del audio dividida en partes"></canvas>
+        <div id="tip" class="tip" hidden></div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--rule-strong)"></i>Pendiente</span>
+        <span><i style="background:var(--signal)"></i>Transcribiendo</span>
+        <span><i style="background:var(--ink)"></i>Hecho</span>
+        <span><i style="background:var(--alert)"></i>Con problemas</span>
+      </div>
+
+      <div class="statusline">
+        <p id="status" role="status" aria-live="polite"></p>
+        <p id="statusAside"></p>
+      </div>
+      <div id="progress" class="progress"><span></span></div>
+
+      <div id="notice" class="notice" role="alert" hidden>
+        <p id="noticeMsg"></p>
+        <p id="noticeDetail" class="detail"></p>
+        <details id="report" class="report" hidden>
+          <summary>Informe técnico completo</summary>
+          <pre id="reportText"></pre>
+          <button id="copyReport" class="btn-quiet" type="button">Copiar informe</button>
+        </details>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button id="tabText" class="tab" role="tab" aria-selected="true" aria-controls="panelText" type="button">Transcripción</button>
+      </div>
+      <div id="panelText" class="sheet" role="tabpanel" aria-labelledby="tabText">
+        <p id="emptyText" class="empty">La transcripción aparecerá aquí a medida que avance. Pulsa en una marca de tiempo para ir a ese momento.</p>
+        <div id="reading" class="reading"></div>
+        <textarea id="editor" class="editor" hidden aria-label="Editar la transcripción"></textarea>
+      </div>
+      <div class="exports">
+        <button id="copyBtn" class="btn btn-secondary" type="button" disabled>Copiar</button>
+        <button id="dlTxt" class="btn btn-secondary" type="button" disabled>Descargar .txt</button>
+        <button id="dlDocx" class="btn btn-secondary" type="button" disabled>Descargar Word</button>
+        <span class="spacer"></span>
+        <button id="editBtn" class="btn-quiet" type="button" disabled>Editar texto</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Funciones puras: audio, texto, errores y Word. No tocan la página. -->
+<script id="core">
+'use strict';
+const SR = 16000;               // Hz de audio que se envía a Whisper
+const TARGET_SEC = 360;         // duración objetivo de cada parte
+const MAX_SEC = 420;            // duración máxima de una parte
+const WINDOW_SEC = 20;          // margen para buscar un silencio donde cortar
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function fmtClock(sec, withHours) {
+  sec = Math.max(0, Math.round(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return withHours ? `${h}:${pad2(m)}:${pad2(s)}` : `${pad2(Math.floor(sec / 60))}:${pad2(s)}`;
+}
+
+function fmtDuration(sec) {
+  sec = Math.max(0, Math.round(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h) return m ? `${h} h ${m} min` : `${h} h`;
+  if (m) return (s && m < 10) ? `${m} min ${s} s` : `${m} min`;
+  return `${s} s`;
+}
+
+function fmtBytes(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(2).replace('.', ',') + ' GB';
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' MB';
+  return Math.max(1, Math.round(n / 1e3)) + ' KB';
+}
+
+/* Punto de menor energía (silencio) entre from y to, en muestras. */
+function quietestPoint(pcm, from, to, sr) {
+  const frame = Math.max(1, Math.round(sr * 0.1));
+  from = Math.max(0, Math.floor(from));
+  to = Math.min(pcm.length - frame, Math.floor(to));
+  if (to <= from) return Math.max(0, Math.min(pcm.length, from));
+  let best = from, bestE = Infinity;
+  for (let p = from; p <= to; p += frame) {
+    let e = 0;
+    for (let k = p; k < p + frame; k++) { const v = pcm[k]; e += v * v; }
+    if (e < bestE) { bestE = e; best = p + (frame >> 1); }
+  }
+  return best;
+}
+
+/* Divide el audio en partes de unos 6 minutos cortando en silencios. */
+function planSegments(pcm, sr, targetSec = TARGET_SEC, maxSec = MAX_SEC, windowSec = WINDOW_SEC) {
+  const n = pcm.length, segs = [];
+  const target = Math.round(targetSec * sr), max = Math.round(maxSec * sr), win = Math.round(windowSec * sr);
+  let start = 0;
+  while (n - start > max) {
+    const ideal = start + target;
+    const cut = quietestPoint(pcm, ideal - win, ideal + win, sr);
+    segs.push({ start, end: cut });
+    start = cut;
+  }
+  if (n - start > 0) segs.push({ start, end: n });
+  return segs;
+}
+
+function concatInt16(pieces, total) {
+  const out = new Int16Array(total);
+  let o = 0;
+  for (let i = 0; i < pieces.length; i++) { out.set(pieces[i], o); o += pieces[i].length; pieces[i] = null; }
+  return out;
+}
+
+function computePeaks(pcm, buckets) {
+  const out = new Float32Array(buckets), n = pcm.length;
+  if (!n) return out;
+  for (let b = 0; b < buckets; b++) {
+    const s = Math.floor(b * n / buckets), e = Math.max(s + 1, Math.floor((b + 1) * n / buckets));
+    let m = 0;
+    for (let i = s; i < e; i += 4) { const v = pcm[i]; const a = v < 0 ? -v : v; if (a > m) m = a; }
+    out[b] = m / 32768;
+  }
+  return out;
+}
+
+/* Cabecera WAV de 44 bytes. */
+function wavHeaderFmt(f, dataLen) {
+  const b = new ArrayBuffer(44), v = new DataView(b);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + dataLen, true); w(8, 'WAVE');
+  w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, f.format, true); v.setUint16(22, f.channels, true);
+  v.setUint32(24, f.sampleRate, true); v.setUint32(28, f.sampleRate * f.blockAlign, true);
+  v.setUint16(32, f.blockAlign, true); v.setUint16(34, f.bits, true);
+  w(36, 'data'); v.setUint32(40, dataLen, true);
+  return new Uint8Array(b);
+}
+function wavHeader(numSamples, sr) {
+  return wavHeaderFmt({ format: 1, channels: 1, sampleRate: sr, blockAlign: 2, bits: 16 }, numSamples * 2);
+}
+
+/* Lee la cabecera de un WAV para poder trocearlo. */
+function parseWav(u8, fileSize) {
+  const v = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const tag = o => String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]);
+  if (u8.length < 12 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return null;
+  let o = 12, fmt = null;
+  while (o + 8 <= u8.length) {
+    const id = tag(o), size = v.getUint32(o + 4, true);
+    if (id === 'fmt ' && o + 24 <= u8.length) {
+      let format = v.getUint16(o + 8, true);
+      const channels = v.getUint16(o + 10, true), sampleRate = v.getUint32(o + 12, true);
+      const blockAlign = v.getUint16(o + 20, true), bits = v.getUint16(o + 22, true);
+      if (format === 0xFFFE && size >= 40 && o + 34 <= u8.length) format = v.getUint16(o + 32, true);
+      fmt = { format, channels, sampleRate, blockAlign, bits };
+    } else if (id === 'data') {
+      if (!fmt) return null;
+      const dataOffset = o + 8;
+      let dataSize = size;
+      if (!dataSize || dataOffset + dataSize > fileSize) dataSize = fileSize - dataOffset;
+      return Object.assign({}, fmt, { dataOffset, dataSize });
+    }
+    o += 8 + size + (size & 1);
+  }
+  return null;
+}
+
+/* Tramas MP3 (MPEG capa III), para cortar el archivo por tramas completas. */
+const MP3_BR1 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+const MP3_BR2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
+const MP3_SRS = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
+function mp3FrameLen(u8, i) {
+  if (i + 4 > u8.length || u8[i] !== 0xFF || (u8[i + 1] & 0xE0) !== 0xE0) return 0;
+  const ver = (u8[i + 1] >> 3) & 3, layer = (u8[i + 1] >> 1) & 3;
+  if (ver === 1 || layer !== 1) return 0;
+  const bri = (u8[i + 2] >> 4) & 15, sri = (u8[i + 2] >> 2) & 3, pad = (u8[i + 2] >> 1) & 1;
+  if (bri === 0 || bri === 15 || sri === 3) return 0;
+  const br = (ver === 3 ? MP3_BR1 : MP3_BR2)[bri] * 1000, sr = MP3_SRS[ver][sri];
+  return Math.floor((ver === 3 ? 144 : 72) * br / sr) + pad;
+}
+function findMp3Sync(u8, from) {
+  for (let i = Math.max(0, from); i + 4 <= u8.length; i++) {
+    const len = mp3FrameLen(u8, i);
+    if (len > 0) {
+      const j = i + len;
+      if (j + 4 > u8.length || mp3FrameLen(u8, j) > 0) return i;
+    }
+  }
+  return -1;
+}
+function id3Size(u8) {
+  if (u8.length >= 10 && u8[0] === 0x49 && u8[1] === 0x44 && u8[2] === 0x33) {
+    return 10 + (((u8[6] & 0x7f) << 21) | ((u8[7] & 0x7f) << 14) | ((u8[8] & 0x7f) << 7) | (u8[9] & 0x7f)) + ((u8[5] & 0x10) ? 10 : 0);
+  }
+  return 0;
+}
+
+/* MP4, MOV y M4A: se lee solo la pista de sonido, sin cargar el vídeo en memoria.
+   Los paquetes AAC se envuelven en ADTS (o se dejan tal cual si son MP3) para que
+   decodeAudioData los entienda, y se entregan en trozos pequeños. */
+const AAC_RATES = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+class Mp4Error extends Error { constructor(kind, msg) { super(msg); this.kind = kind; } }
+function u16be(u8, o) { return (u8[o] << 8) | u8[o + 1]; }
+function u32be(u8, o) { return ((u8[o] << 24) | (u8[o + 1] << 16) | (u8[o + 2] << 8) | u8[o + 3]) >>> 0; }
+function u64be(u8, o) { return u32be(u8, o) * 4294967296 + u32be(u8, o + 4); }
+function fourcc(u8, o) { return String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]); }
+
+function mp4Boxes(u8, start, end) {
+  const out = [];
+  let o = start;
+  while (o + 8 <= end) {
+    let size = u32be(u8, o), hdr = 8;
+    const type = fourcc(u8, o + 4);
+    if (size === 1) { if (o + 16 > end) break; size = u64be(u8, o + 8); hdr = 16; }
+    else if (size === 0) size = end - o;
+    if (size < hdr || o + size > end) break;
+    out.push({ type, start: o, data: o + hdr, end: o + size });
+    o += size;
+  }
+  return out;
+}
+function mp4Child(u8, box, type) { return box ? (mp4Boxes(u8, box.data, box.end).find(b => b.type === type) || null) : null; }
+function mp4Path(u8, box, types) { for (const t of types) box = mp4Child(u8, box, t); return box; }
+async function readRange(blob, a, b) { return new Uint8Array(await blob.slice(a, b).arrayBuffer()); }
+
+async function mp4Sniff(blob) {
+  if (blob.size < 16) return false;
+  const h = await readRange(blob, 0, 16);
+  return ['ftyp', 'moov', 'mdat', 'free', 'skip', 'wide'].indexOf(fourcc(h, 4)) >= 0 && (u32be(h, 0) >= 8 || u32be(h, 0) === 1);
+}
+
+async function mp4TopBoxes(blob) {
+  const out = [];
+  let pos = 0, guard = 0;
+  while (pos + 8 <= blob.size && guard++ < 500000) {
+    const h = await readRange(blob, pos, Math.min(blob.size, pos + 16));
+    let size = u32be(h, 0), hdr = 8;
+    if (size === 1) { if (h.length < 16) break; size = u64be(h, 8); hdr = 16; }
+    else if (size === 0) size = blob.size - pos;
+    if (size < hdr) break;
+    out.push({ type: fourcc(h, 4), start: pos, data: pos + hdr, end: Math.min(blob.size, pos + size) });
+    pos += size;
+  }
+  return out;
+}
+
+function parseAsc(u8) {
+  let bit = 0;
+  const read = n => { let v = 0; for (let i = 0; i < n; i++) { v = (v << 1) | ((u8[bit >> 3] >> (7 - (bit & 7))) & 1); bit++; } return v; };
+  let aot = read(5); if (aot === 31) aot = 32 + read(6);
+  const sfi = read(4); if (sfi === 15) read(24);
+  const chan = read(4);
+  let coreAot = aot;
+  if (aot === 5 || aot === 29) {
+    const esfi = read(4); if (esfi === 15) read(24);
+    coreAot = read(5); if (coreAot === 31) coreAot = 32 + read(6);
+  }
+  return { aot, coreAot, sfi, chan };
+}
+
+function parseEsds(u8, start, end) {
+  let o = start + 4;
+  const readLen = () => { let len = 0; for (let i = 0; i < 4; i++) { const b = u8[o++]; len = (len << 7) | (b & 0x7f); if (!(b & 0x80)) break; } return len; };
+  if (u8[o++] !== 0x03) return null;
+  readLen(); o += 2;
+  const fl = u8[o++];
+  if (fl & 0x80) o += 2;
+  if (fl & 0x40) o += u8[o] + 1;
+  if (fl & 0x20) o += 2;
+  if (u8[o++] !== 0x04) return null;
+  readLen();
+  const oti = u8[o];
+  o += 13;
+  let asc = null;
+  if (o < end && u8[o] === 0x05) { o++; const l = readLen(); asc = u8.slice(o, Math.min(end, o + l)); }
+  return { oti, asc };
+}
+
+function mp4FindAudio(moov) {
+  const root = mp4Boxes(moov, 0, moov.length)[0];
+  if (!root) return null;
+  for (const trak of mp4Boxes(moov, root.data, root.end).filter(b => b.type === 'trak')) {
+    const hdlr = mp4Path(moov, trak, ['mdia', 'hdlr']);
+    if (!hdlr || fourcc(moov, hdlr.data + 8) !== 'soun') continue;
+    const tkhd = mp4Child(moov, trak, 'tkhd');
+    const trackId = tkhd ? u32be(moov, tkhd.data + (moov[tkhd.data] === 1 ? 20 : 12)) : 0;
+    const stbl = mp4Path(moov, trak, ['mdia', 'minf', 'stbl']);
+    const stsd = mp4Child(moov, stbl, 'stsd');
+    const entry = stsd ? mp4Boxes(moov, stsd.data + 8, stsd.end)[0] : null;
+    if (!entry) continue;
+    let oti = null, asc = null;
+    for (let o = entry.data + 28; o + 8 <= entry.end; o++) {
+      if (moov[o + 4] === 0x65 && moov[o + 5] === 0x73 && moov[o + 6] === 0x64 && moov[o + 7] === 0x73) {
+        const sz = u32be(moov, o);
+        if (sz >= 12 && o + sz <= entry.end) { const r = parseEsds(moov, o + 8, o + sz); if (r) { oti = r.oti; asc = r.asc; } break; }
+      }
+    }
+    return { trackId, codec: entry.type, oti, asc, channels: u16be(moov, entry.data + 16), sampleRate: u32be(moov, entry.data + 24) >>> 16, stbl };
+  }
+  return null;
+}
+
+function mp4SampleRuns(moov, stbl) {
+  const runs = { offset: [], start: [], count: [] };
+  const stsz = mp4Child(moov, stbl, 'stsz'), stz2 = mp4Child(moov, stbl, 'stz2');
+  let sizes = new Uint32Array(0);
+  if (stsz) {
+    const fixed = u32be(moov, stsz.data + 4), n = u32be(moov, stsz.data + 8);
+    sizes = new Uint32Array(n);
+    if (fixed) sizes.fill(fixed); else for (let i = 0; i < n; i++) sizes[i] = u32be(moov, stsz.data + 12 + 4 * i);
+  } else if (stz2) {
+    const fs = moov[stz2.data + 7], n = u32be(moov, stz2.data + 8), p = stz2.data + 12;
+    sizes = new Uint32Array(n);
+    for (let i = 0; i < n; i++) sizes[i] = fs === 8 ? moov[p + i] : fs === 16 ? u16be(moov, p + 2 * i) : (moov[p + (i >> 1)] >> ((i & 1) ? 0 : 4)) & 15;
+  }
+  const stco = mp4Child(moov, stbl, 'stco'), co64 = mp4Child(moov, stbl, 'co64'), stsc = mp4Child(moov, stbl, 'stsc');
+  const offs = [];
+  if (stco) { const n = u32be(moov, stco.data + 4); for (let i = 0; i < n; i++) offs.push(u32be(moov, stco.data + 8 + 4 * i)); }
+  else if (co64) { const n = u32be(moov, co64.data + 4); for (let i = 0; i < n; i++) offs.push(u64be(moov, co64.data + 8 + 8 * i)); }
+  if (!stsc || !offs.length || !sizes.length) return { sizes, runs };
+  const ne = u32be(moov, stsc.data + 4), total = sizes.length;
+  let s = 0;
+  for (let e = 0; e < ne && s < total; e++) {
+    const b = stsc.data + 8 + 12 * e;
+    const first = u32be(moov, b) - 1, spc = u32be(moov, b + 4);
+    const last = e + 1 < ne ? u32be(moov, b + 12) - 1 : offs.length;
+    for (let c = first; c < last && c < offs.length && s < total; c++) {
+      const k = Math.min(spc, total - s);
+      runs.offset.push(offs[c]); runs.start.push(s); runs.count.push(k);
+      s += k;
+    }
+  }
+  return { sizes, runs };
+}
+
+/* MP4 fragmentado (moof + mdat), habitual en algunos grabadores de pantalla. */
+async function mp4FragmentRuns(blob, top, moov, trackId) {
+  let defSizeTrex = 0;
+  const root = mp4Boxes(moov, 0, moov.length)[0];
+  const mvex = mp4Child(moov, root, 'mvex');
+  if (mvex) for (const trex of mp4Boxes(moov, mvex.data, mvex.end).filter(b => b.type === 'trex')) {
+    if (u32be(moov, trex.data + 4) === trackId) defSizeTrex = u32be(moov, trex.data + 16);
+  }
+  const sizes = [], runs = { offset: [], start: [], count: [] };
+  for (const box of top) {
+    if (box.type !== 'moof') continue;
+    const u8 = await readRange(blob, box.start, box.end);
+    const moof = mp4Boxes(u8, 0, u8.length)[0];
+    if (!moof) continue;
+    for (const traf of mp4Boxes(u8, moof.data, moof.end).filter(b => b.type === 'traf')) {
+      const tfhd = mp4Child(u8, traf, 'tfhd');
+      if (!tfhd || u32be(u8, tfhd.data + 4) !== trackId) continue;
+      const tf = u32be(u8, tfhd.data) & 0xFFFFFF;
+      let p = tfhd.data + 8, base = box.start, defSize = defSizeTrex;
+      if (tf & 0x1) { base = u64be(u8, p); p += 8; }
+      if (tf & 0x2) p += 4;
+      if (tf & 0x8) p += 4;
+      if (tf & 0x10) { defSize = u32be(u8, p); p += 4; }
+      let next = base;
+      for (const trun of mp4Boxes(u8, traf.data, traf.end).filter(b => b.type === 'trun')) {
+        const rf = u32be(u8, trun.data) & 0xFFFFFF, n = u32be(u8, trun.data + 4);
+        let q = trun.data + 8, off = next;
+        if (rf & 0x1) { off = base + (u32be(u8, q) | 0); q += 4; }
+        if (rf & 0x4) q += 4;
+        const start = sizes.length;
+        let bytes = 0;
+        for (let i = 0; i < n; i++) {
+          if (rf & 0x100) q += 4;
+          let sz = defSize;
+          if (rf & 0x200) { sz = u32be(u8, q); q += 4; }
+          if (rf & 0x400) q += 4;
+          if (rf & 0x800) q += 4;
+          sizes.push(sz); bytes += sz;
+        }
+        if (n) { runs.offset.push(off); runs.start.push(start); runs.count.push(n); }
+        next = off + bytes;
+      }
+    }
+  }
+  return { sizes: Uint32Array.from(sizes), runs };
+}
+
+function adtsHeader(profile, sfi, chan, payloadLen) {
+  const len = payloadLen + 7;
+  return [0xFF, 0xF1, ((profile & 3) << 6) | ((sfi & 15) << 2) | ((chan >> 2) & 1),
+    ((chan & 3) << 6) | ((len >> 11) & 3), (len >> 3) & 0xFF, ((len & 7) << 5) | 0x1F, 0xFC];
+}
+
+async function mp4ExtractAudio(blob, onPiece, onProgress, pieceBytes) {
+  pieceBytes = pieceBytes || (4 << 20);
+  const top = await mp4TopBoxes(blob);
+  const moovBox = top.find(b => b.type === 'moov');
+  if (!moovBox) throw new Mp4Error('format', 'No se encuentra la caja moov.');
+  if (moovBox.end - moovBox.start > (256 << 20)) throw new Mp4Error('format', 'La caja moov es demasiado grande.');
+  const moov = await readRange(blob, moovBox.start, moovBox.end);
+  const a = mp4FindAudio(moov);
+  if (!a) throw new Mp4Error('noaudio', 'No hay pista de sonido.');
+
+  let mode, h = null;
+  if (a.codec === 'mp4a' && (a.oti === 0x69 || a.oti === 0x6B)) mode = 'raw';
+  else if (a.codec === '.mp3') mode = 'raw';
+  else if (a.codec === 'mp4a' && (a.oti === null || a.oti === 0x40 || (a.oti >= 0x66 && a.oti <= 0x68))) {
+    let profile, sfi, chan;
+    if (a.asc && a.asc.length >= 2) { const c = parseAsc(a.asc); profile = c.coreAot - 1; sfi = c.sfi; chan = c.chan; }
+    else { profile = (a.oti >= 0x66 && a.oti <= 0x68) ? a.oti - 0x66 : 1; sfi = AAC_RATES.indexOf(a.sampleRate); chan = a.channels; }
+    if (!chan) chan = Math.min(a.channels || 2, 2);
+    if (profile < 0 || profile > 3 || sfi < 0 || sfi > 12 || chan > 7) throw new Mp4Error('codec', `AAC no compatible (perfil ${profile + 1})`);
+    h = { profile, sfi, chan };
+    mode = 'adts';
+  } else throw new Mp4Error('codec', `Formato de sonido "${a.codec.trim()}"`);
+
+  let { sizes, runs } = mp4SampleRuns(moov, a.stbl);
+  if (!runs.offset.length && top.some(b => b.type === 'moof')) ({ sizes, runs } = await mp4FragmentRuns(blob, top, moov, a.trackId));
+  if (!runs.offset.length) throw new Mp4Error('noaudio', 'La pista de sonido está vacía.');
+
+  const R = runs.offset.length, runBytes = new Float64Array(R);
+  for (let r = 0; r < R; r++) { let b = 0; for (let i = runs.start[r], e = i + runs.count[r]; i < e; i++) b += sizes[i]; runBytes[r] = b; }
+  const groups = [];
+  for (let r = 0; r < R;) {
+    const r0 = r, start = runs.offset[r];
+    let end = start + runBytes[r];
+    r++;
+    while (r < R) {
+      const o = runs.offset[r], e = o + runBytes[r];
+      if (o < end || o - end > 65536 || e - start > (4 << 20)) break;
+      end = e; r++;
+    }
+    groups.push({ r0, r1: r, start, end: Math.min(blob.size, end) });
+  }
+
+  let buf = new Uint8Array(pieceBytes + 65536), pos = 0, frames = 0;
+  const flush = async () => { if (!pos) return; const out = buf.slice(0, pos); pos = 0; await onPiece(out); };
+  const BATCH = 8;
+  for (let g = 0; g < groups.length; g += BATCH) {
+    const batch = groups.slice(g, g + BATCH);
+    const datas = await Promise.all(batch.map(gr => readRange(blob, gr.start, gr.end)));
+    for (let k = 0; k < batch.length; k++) {
+      const gr = batch[k], d = datas[k];
+      for (let r = gr.r0; r < gr.r1; r++) {
+        let o = runs.offset[r] - gr.start;
+        for (let i = runs.start[r], e = i + runs.count[r]; i < e; i++) {
+          const sz = sizes[i];
+          if (o + sz > d.length || !sz) { o += sz; continue; }
+          const need = sz + (mode === 'adts' ? 7 : 0);
+          if (mode === 'adts' && need > 8191) { o += sz; continue; }
+          if (pos + need > buf.length) await flush();
+          if (need > buf.length) buf = new Uint8Array(need + 65536);
+          if (mode === 'adts') { buf.set(adtsHeader(h.profile, h.sfi, h.chan, sz), pos); pos += 7; }
+          buf.set(d.subarray(o, o + sz), pos); pos += sz; o += sz;
+          frames++;
+          if (pos >= pieceBytes) await flush();
+        }
+      }
+    }
+    if (onProgress) onProgress(Math.min(g + BATCH, groups.length) / groups.length);
+  }
+  await flush();
+  if (!frames) throw new Mp4Error('noaudio', 'No se ha podido leer ningún paquete de sonido.');
+  return { codec: a.codec, mode, frames, channels: a.channels, sampleRate: a.sampleRate };
+}
+
+/* Marcas de tiempo [MM:SS] */
+function tsToSec(a, b, c) { return c !== undefined ? (+a) * 3600 + (+b) * 60 + (+c) : (+a) * 60 + (+b); }
+
+/* De la salida de Whisper al texto de la página */
+const HALLUCINATION = /amara\.org/i;
+
+/* Quita las alucinaciones típicas de Whisper (créditos de subtítulos) y las repeticiones en bucle. */
+function cleanChunks(chunks) {
+  const out = [];
+  let run = 0, prev = '';
+  for (const c of chunks) {
+    const t = String(c.text || '').replace(/\s+/g, ' ').trim();
+    if (!t || HALLUCINATION.test(t)) continue;
+    const key = t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+    if (!key) continue;
+    run = key === prev ? run + 1 : 1;
+    prev = key;
+    if (run > 2) continue;
+    out.push({ start: c.start, end: c.end, text: t });
+  }
+  return out;
+}
+
+/* Agrupa las frases de Whisper en párrafos (por pausas y por longitud). */
+function chunksToText(chunks, timestamps, hours) {
+  const paras = [];
+  let cur = null;
+  for (const c of cleanChunks(chunks)) {
+    const gap = cur ? c.start - cur.end : 0;
+    const full = cur && (cur.text.length > 650 || (cur.text.length >= 280 && /[.!?…]$/.test(cur.text)));
+    if (!cur || gap > 2.5 || full) { cur = { start: c.start, end: c.end, text: c.text }; paras.push(cur); }
+    else { cur.text += ' ' + c.text; cur.end = c.end; }
+  }
+  return paras.map(p => (timestamps ? `[${fmtClock(p.start, hours)}] ` : '') + p.text).join('\n\n');
+}
+
+/* Términos del usuario: corrige nombres que Whisper escribe casi bien (otras tildes, mayúsculas, una letra de más o de menos). */
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  if (!m || !n) return m + n;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+function plainKey(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function parseTerms(str) {
+  return String(str || '').split(/[,;\n]+/).map(t => t.trim()).filter(t => t.length >= 3);
+}
+function applyTerms(text, terms) {
+  if (!terms || !terms.length || !text) return text;
+  const WORD = /[\p{L}\p{N}]+/gu;
+  const toks = [];
+  for (let m; (m = WORD.exec(text));) toks.push({ s: m.index, e: m.index + m[0].length, k: plainKey(m[0]) });
+  const defs = terms.map(t => ({ t, ws: (t.match(/[\p{L}\p{N}]+/gu) || []).map(plainKey) })).filter(d => d.ws.length);
+  const repl = [];
+  for (let i = 0; i < toks.length; i++) {
+    for (const d of defs) {
+      const k = d.ws.length;
+      if (i + k > toks.length) continue;
+      let ok = true;
+      for (let j = 0; j < k && ok; j++) {
+        if (j > 0 && !/^[ \t-]+$/.test(text.slice(toks[i + j - 1].e, toks[i + j].s))) { ok = false; break; }
+        const a = toks[i + j].k, b = d.ws[j];
+        const tol = b.length >= 10 ? 2 : b.length >= 6 ? 1 : 0;
+        if (a !== b && !(tol && Math.abs(a.length - b.length) <= tol && levenshtein(a, b) <= tol)) ok = false;
+      }
+      if (ok) { repl.push({ s: toks[i].s, e: toks[i + k - 1].e, t: d.t }); i += k - 1; break; }
+    }
+  }
+  let out = text;
+  for (let r = repl.length - 1; r >= 0; r--) out = out.slice(0, repl[r].s) + repl[r].t + out.slice(repl[r].e);
+  return out;
+}
+
+/* Audio para Whisper */
+function isSilent(pcm) {
+  let sum = 0, peak = 0, n = 0;
+  for (let i = 0; i < pcm.length; i += 3) { const v = pcm[i]; const a = v < 0 ? -v : v; if (a > peak) peak = a; sum += v * v; n++; }
+  if (!n) return true;
+  return Math.sqrt(sum / n) / 32768 < 0.0015 && peak / 32768 < 0.02;
+}
+function toFloat32(pcm) {
+  const f = new Float32Array(pcm.length);
+  for (let i = 0; i < pcm.length; i++) f[i] = pcm[i] / 32768;
+  return f;
+}
+
+function joinChunks(texts, timestamps) {
+  let out = '';
+  for (const raw of texts) {
+    const t = (raw || '').trim();
+    if (!t) continue;
+    if (!out) { out = t; continue; }
+    const glue = (!timestamps && !/[.!?…:;"')\]]$/.test(out) && /^[a-záéíóúñü]/.test(t)) ? ' ' : '\n\n';
+    out += glue + t;
+  }
+  return out;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function textToHtml(text) {
+  return text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(line => {
+    const m = line.match(/^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*/);
+    if (m) {
+      const t = tsToSec(m[1], m[2], m[3]);
+      return `<p><button type="button" class="ts" data-t="${t}" title="Ir a este momento">${esc(m[0].trim())}</button>${esc(line.slice(m[0].length))}</p>`;
+    }
+    return `<p>${esc(line)}</p>`;
+  }).join('');
+}
+
+/* Word (.docx) sin librerías: XML + ZIP sin compresión. */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(u8) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zipStore(files) {
+  const enc = new TextEncoder();
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true);
+    ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const cdSize = central.reduce((s, a) => s + a.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  const all = parts.concat(central, [new Uint8Array(end.buffer)]);
+  const total = all.reduce((s, a) => s + a.length, 0);
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const a of all) { out.set(a, o); o += a.length; }
+  return out;
+}
+function xmlEsc(s) {
+  return String(s)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function wRun(text, bold) {
+  return `<w:r>${bold ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
+}
+function wPara(content, style) {
+  const runs = Array.isArray(content) ? content.join('') : wRun(content);
+  return `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ''}${runs}</w:p>`;
+}
+function buildDocx(opt) {
+  const B = [];
+  B.push(wPara(opt.title || 'Transcripción', 'Title'));
+  if (opt.meta) B.push(wPara(opt.meta, 'Meta'));
+  const s = opt.summary;
+  if (s) {
+    B.push(wPara('Resumen', 'Heading1'));
+    if (s.__raw) {
+      s.__raw.split(/\n+/).filter(x => x.trim()).forEach(l => B.push(wPara(l.trim())));
+    } else {
+      if (s.titulo) B.push(wPara(s.titulo, 'Heading2'));
+      if (s.introduccion) B.push(wPara(s.introduccion));
+      const pts = s.puntos_principales || [];
+      if (pts.length) {
+        B.push(wPara('Puntos principales', 'Heading2'));
+        pts.forEach((p, i) => { B.push(wPara(`${i + 1}. ${p.titulo || ''}`, 'Heading3')); if (p.contenido) B.push(wPara(p.contenido)); });
+      }
+      const cc = s.conceptos_clave || [];
+      if (cc.length) { B.push(wPara('Conceptos clave', 'Heading2')); cc.forEach(c => B.push(wPara(`- ${c}`, 'ListLine'))); }
+      if (s.conclusiones) { B.push(wPara('Conclusiones', 'Heading2')); B.push(wPara(s.conclusiones)); }
+      const md = s.metadata || {};
+      const meta = [];
+      if (md.duracion_estimada) meta.push(`Duración estimada: ${md.duracion_estimada}.`);
+      if (md.nivel) meta.push(`Nivel: ${md.nivel}.`);
+      if (md.temas && md.temas.length) meta.push(`Temas: ${md.temas.join(', ')}.`);
+      if (meta.length) B.push(wPara(meta.join(' '), 'Meta'));
+    }
+  }
+  if (opt.transcript) {
+    B.push(wPara('Transcripción', 'Heading1'));
+    opt.transcript.split(/\n+/).map(l => l.trim()).filter(Boolean).forEach(line => {
+      const m = line.match(/^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*/);
+      if (m) B.push(wPara([wRun(m[0].trim() + ' ', true), wRun(line.slice(m[0].length))]));
+      else B.push(wPara(line));
+    });
+  }
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document ${NS}><w:body>${B.join('')}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1418" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const style = (id, name, ppr, rpr, extra) => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>${extra || ''}<w:qFormat/><w:pPr>${ppr}</w:pPr><w:rPr>${rpr}</w:rPr></w:style>`;
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="es-ES"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="140" w:line="288" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+${style('Title', 'Title', '<w:spacing w:after="80"/>', '<w:b/><w:sz w:val="40"/><w:szCs w:val="40"/>')}
+${style('Meta', 'Meta', '<w:spacing w:after="320"/>', '<w:color w:val="666666"/><w:sz w:val="18"/><w:szCs w:val="18"/>')}
+${style('Heading1', 'heading 1', '<w:keepNext/><w:spacing w:before="400" w:after="160"/><w:outlineLvl w:val="0"/>', '<w:b/><w:sz w:val="30"/><w:szCs w:val="30"/>')}
+${style('Heading2', 'heading 2', '<w:keepNext/><w:spacing w:before="280" w:after="120"/><w:outlineLvl w:val="1"/>', '<w:b/><w:sz w:val="25"/><w:szCs w:val="25"/>')}
+${style('Heading3', 'heading 3', '<w:keepNext/><w:spacing w:before="200" w:after="60"/><w:outlineLvl w:val="2"/>', '<w:b/><w:sz w:val="22"/><w:szCs w:val="22"/>')}
+${style('ListLine', 'List Line', '<w:spacing w:after="40"/><w:ind w:left="284"/>', '')}
+</w:styles>`;
+  const files = [
+    { name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>` },
+    { name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` },
+    { name: 'word/_rels/document.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
+    { name: 'word/document.xml', data: documentXml },
+    { name: 'word/styles.xml', data: stylesXml }
+  ];
+  return zipStore(files);
+}
+</script>
+
+<!-- Lógica de Whisper. Se ejecuta en un trabajador en segundo plano o, si el navegador no lo permite, en esta página. -->
+<script type="text/plain" id="whisperHandler">
+let asr = null;
+function describe(err) {
+  if (err instanceof Error || (err && typeof err.message === 'string' && typeof err.name === 'string')) return (err.name && err.name !== 'Error' ? err.name + ': ' : '') + err.message;
+  if (typeof Event !== 'undefined' && err instanceof Event) {
+    const t = err.target || {};
+    return 'Evento "' + err.type + '"' + (t.src || t.href || t.url ? ' al cargar ' + (t.src || t.href || t.url) : '') + (err.message ? ': ' + err.message : '');
+  }
+  if (err && typeof err === 'object') { try { return JSON.stringify(err); } catch (e) { /* sigue */ } }
+  return String(err);
+}
+
+async function handle(lib, m, send) {
+  try {
+    if (m.type === 'load') {
+      const files = {};
+      asr = await lib.pipeline('automatic-speech-recognition', m.model, {
+        device: m.device,
+        dtype: m.dtype,
+        progress_callback: p => {
+          if (p.status === 'progress' && p.total) files[p.file] = { loaded: p.loaded, total: p.total };
+          else if (p.status === 'done' && files[p.file]) files[p.file].loaded = files[p.file].total;
+          else return;
+          let loaded = 0, total = 0;
+          for (const k in files) { loaded += files[k].loaded; total += files[k].total; }
+          send({ type: 'progress', id: m.id, loaded, total });
+        }
+      });
+      send({ type: 'loaded', id: m.id });
+    } else if (m.type === 'run') {
+      if (!asr) throw new Error('El modelo no está cargado.');
+      const out = await asr(m.audio, { language: m.language, task: 'transcribe', return_timestamps: true });
+      send({ type: 'result', id: m.id, text: out.text || '', chunks: out.chunks || [] });
+    }
+  } catch (err) {
+    send({ type: 'error', id: m.id, message: describe(err), name: err && err.name, stack: err && err.stack ? String(err.stack) : '' });
+  }
+}
+</script>
+
+<!-- Aplicación -->
+<script>
+'use strict';
+const LS = { model: 'transcriptor.whisper.model', dev: 'transcriptor.whisper.device', lang: 'transcriptor.lang', ts: 'transcriptor.ts' };
+const LIB_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+const IDLE_MODEL_MSG = 'El modelo se carga al transcribir. La primera vez se descarga por lotes, con reintentos, y queda guardado en este navegador.';
+
+/* Modelos de Whisper en formato ONNX y la precisión con la que se cargan en GPU y en CPU. */
+const MODELS = {
+  'onnx-community/whisper-tiny': { gpu: 'fp32', cpu: 'q8' },
+  'onnx-community/whisper-base': { gpu: 'fp32', cpu: 'q8' },
+  'onnx-community/whisper-small': { gpu: { encoder_model: 'fp32', decoder_model_merged: 'q4' }, cpu: 'q8' },
+  'onnx-community/whisper-large-v3-turbo': { gpu: { encoder_model: 'fp16', decoder_model_merged: 'q4' }, cpu: 'q8' }
+};
+const DL_CHUNK = 8 * 1024 * 1024;   // tamaño de cada lote de descarga
+const DL_PARALLEL = 3;              // lotes que se descargan a la vez
+const DL_ATTEMPTS = 6;              // intentos por lote antes de parar
+const DL_STALL_MS = 60000;          // un lote que no termina en 60 s se corta y se reintenta
+const DTYPE_SUFFIX = { fp32: '', fp16: '_fp16', q8: '_quantized', q4: '_q4' };
+const DL_PART_HOST = 'https://transcriptor.invalid/part/';   // claves internas de la caché de lotes
+const WIN_TARGET_SEC = 25;   // Whisper procesa como máximo 30 s de una vez: cada parte se trocea en ventanas de unos 25 s
+const WIN_MAX_SEC = 30;
+const WIN_SEARCH_SEC = 4;    // margen para buscar un silencio donde cortar cada ventana
+const MIN_WIN_SEC = 0.4;     // las ventanas más cortas se ignoran
+
+const $ = id => document.getElementById(id);
+const els = {
+  model: $('model'), device: $('device'), devHint: $('devHint'), modelStatus: $('modelStatus'),
+  fileInfo: $('fileInfo'), pickFile: $('pickFile'), fileInput: $('fileInput'),
+  lang: $('lang'), optTs: $('optTimestamps'), terms: $('terms'),
+  start: $('startBtn'), stop: $('stopBtn'),
+  drop: $('dropZone'), dropPick: $('dropPick'), workspace: $('workspace'),
+  video: $('video'), audio: $('audio'), wave: $('wave'), tip: $('tip'),
+  status: $('status'), statusAside: $('statusAside'), progress: $('progress'),
+  notice: $('notice'), noticeMsg: $('noticeMsg'), noticeDetail: $('noticeDetail'),
+  report: $('report'), reportText: $('reportText'), copyReport: $('copyReport'),
+  panelText: $('panelText'), emptyText: $('emptyText'), reading: $('reading'), editor: $('editor'),
+  copy: $('copyBtn'), dlTxt: $('dlTxt'), dlDocx: $('dlDocx'), edit: $('editBtn')
+};
+
+const state = {
+  file: null, base: '', url: null, isVideo: false,
+  pcm: null, duration: 0, peaks: null, segments: [],
+  preparing: false, prepId: 0, running: false, controller: null,
+  edited: null, editing: false,
+  runOpts: null, startedAt: 0, wake: null,
+  mode: 'worker', worker: null, workerUrl: null, modelKey: null, callId: 0, gpu: null,
+  todoSec: 0, doneSec: 0, workMs: 0, errLog: [], dlNote: ''
+};
+
+/* ---------- utilidades de página ---------- */
+const tick = () => new Promise(r => setTimeout(r, 0));
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
+function withHours() { return state.duration >= 3600; }
+function currentMedia() { return state.isVideo ? els.video : els.audio; }
+function isDoneSeg(s) { return s.status === 'done' || s.status === 'empty' || s.status === 'warn'; }
+
+function setStatus(text, aside) {
+  els.status.textContent = text || '';
+  if (aside !== undefined) els.statusAside.textContent = aside || '';
+}
+function setProgress(frac) {
+  els.progress.classList.toggle('indeterminate', frac === null);
+  els.progress.firstElementChild.style.width = frac === null ? '' : `${Math.round(Math.max(0, Math.min(1, frac)) * 100)}%`;
+}
+function showNotice(msg, detail) {
+  els.noticeMsg.textContent = msg;
+  els.noticeDetail.textContent = detail ? `Detalle técnico: ${detail}` : '';
+  els.noticeDetail.hidden = !detail;
+  els.notice.hidden = false;
+}
+function hideNotice() { els.notice.hidden = true; els.report.hidden = true; }
+
+/* Texto legible de cualquier cosa que se haya lanzado como error. */
+function errText(x) {
+  if (x instanceof Error || (x && typeof x.message === 'string' && typeof x.name === 'string')) return (x.name && x.name !== 'Error' ? x.name + ': ' : '') + x.message;
+  if (typeof Event !== 'undefined' && x instanceof Event) {
+    const t = x.target || {};
+    return `Evento "${x.type}"${t.src || t.href ? ' al cargar ' + (t.src || t.href) : ''}${x.message ? ': ' + x.message : ''}`;
+  }
+  if (x && typeof x === 'object') { try { return JSON.stringify(x); } catch (e) { /* sigue */ } }
+  return String(x);
+}
+function logPageError(text) { state.errLog.push(text); if (state.errLog.length > 12) state.errLog.shift(); }
+window.addEventListener('error', ev => {
+  const t = ev.target;
+  if (t && t !== window && (t.src || t.href)) logPageError(`No se pudo cargar ${t.src || t.href}`);
+  else if (ev.message) logPageError(`${ev.message} (${ev.filename || '?'}:${ev.lineno || '?'})`);
+}, true);
+window.addEventListener('unhandledrejection', ev => logPageError('Promesa rechazada: ' + errText(ev.reason)));
+
+class WhisperError extends Error {
+  constructor(kind, message) { super(message || kind); this.kind = kind; }
+}
+class UserError extends Error {}
+
+function friendly(e) {
+  if (e instanceof WhisperError) {
+    const msg = String(e.message || '');
+    if (e.kind === 'download') return 'La descarga del modelo se ha interrumpido varias veces seguidas. Lo que ya se había descargado se conserva: pulsa Continuar para seguir desde donde se quedó.';
+    if (e.kind === 'start') return 'No se ha podido cargar Whisper. Comprueba la conexión a internet: la librería se descarga de cdn.jsdelivr.net y el modelo de huggingface.co, y algunos cortafuegos o extensiones los bloquean. Después pulsa Continuar.';
+    const be = msg.match(/ERR: \[(webgpu|wasm)\]/i);
+    if (/no available backend/i.test(msg)) return be && be[1].toLowerCase() === 'webgpu'
+      ? 'No se ha podido iniciar la GPU (WebGPU) para Whisper. Cambia el procesador a CPU en el paso 1 y pulsa Continuar.'
+      : 'No se ha podido iniciar el motor de cálculo de Whisper. Mira el informe técnico de abajo: indica qué archivos no se han podido descargar.';
+    if (/memory|alloc|OOM/i.test(msg) || /^\d+$/.test(msg.trim())) return 'El navegador se ha quedado sin memoria con este modelo. Elige un modelo más pequeño o el procesador CPU y pulsa Continuar.';
+    if (e.kind === 'load') return 'No se ha podido cargar el modelo. Revisa la conexión a internet o prueba con otro procesador y pulsa Continuar.';
+    return 'Whisper ha fallado en esta parte. Pulsa Continuar para reintentar; si se repite, prueba con el procesador CPU.';
+  }
+  return 'Ha ocurrido un error inesperado. Pulsa Continuar para reintentar.';
+}
+
+function setModelStatus(kind, msg) {
+  const ok = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>';
+  const bad = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+  els.modelStatus.className = 'hint keystate' + (kind === 'ok' ? ' ok' : kind === 'error' ? ' error' : '');
+  if (kind === 'ok') els.modelStatus.innerHTML = `${ok}<span>${esc(msg)}</span>`;
+  else if (kind === 'error') els.modelStatus.innerHTML = `${bad}<span>${esc(msg)}</span>`;
+  else els.modelStatus.textContent = msg || '';
+}
+
+/* ---------- lectura del audio ---------- */
+function makeDecodeCtx() {
+  const C = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  return new C(1, SR, SR);
+}
+
+async function downmixToInt16(ab) {
+  const n = ab.length, ch = ab.numberOfChannels, out = new Int16Array(n);
+  const chans = [];
+  for (let c = 0; c < ch; c++) chans.push(ab.getChannelData(c));
+  const BLOCK = 1 << 21;
+  for (let s = 0; s < n; s += BLOCK) {
+    const e = Math.min(n, s + BLOCK);
+    if (ch === 1) {
+      const a = chans[0];
+      for (let i = s; i < e; i++) { let v = a[i]; v = v < -1 ? -1 : v > 1 ? 1 : v; out[i] = v < 0 ? v * 32768 : v * 32767; }
+    } else if (ch === 2) {
+      const a = chans[0], b = chans[1];
+      for (let i = s; i < e; i++) { let v = (a[i] + b[i]) * 0.5; v = v < -1 ? -1 : v > 1 ? 1 : v; out[i] = v < 0 ? v * 32768 : v * 32767; }
+    } else {
+      const inv = 1 / ch;
+      for (let i = s; i < e; i++) { let v = 0; for (let c = 0; c < ch; c++) v += chans[c][i]; v *= inv; v = v < -1 ? -1 : v > 1 ? 1 : v; out[i] = v < 0 ? v * 32768 : v * 32767; }
+    }
+    await tick();
+  }
+  return out;
+}
+
+function decodeError() {
+  return new UserError('No se ha podido leer el sonido de este archivo. Puede que el navegador no admita su formato (prueba con MP4 o MP3), que el vídeo no tenga sonido o que sea demasiado largo para leerlo de una vez (prueba a dividirlo en partes de una o dos horas).');
+}
+
+async function decodeWhole(file) {
+  let buf;
+  try { buf = await file.arrayBuffer(); }
+  catch (e) { throw new UserError('El archivo es demasiado grande para leerlo de una vez en el navegador. Divídelo en partes más cortas o conviértelo a MP3.'); }
+  let ab;
+  try { ab = await makeDecodeCtx().decodeAudioData(buf); }
+  catch (e) { throw decodeError(); }
+  buf = null;
+  return downmixToInt16(ab);
+}
+
+async function decodeMp3Sliced(file, onProgress) {
+  const ctx = makeDecodeCtx();
+  const head = new Uint8Array(await file.slice(0, 64 * 1024).arrayBuffer());
+  let pos = id3Size(head);
+  const SLICE = 24 * 1024 * 1024;
+  const pieces = [];
+  let total = 0;
+  while (pos < file.size) {
+    let end = Math.min(file.size, pos + SLICE);
+    if (end < file.size) {
+      const win = new Uint8Array(await file.slice(end, Math.min(file.size, end + 16384)).arrayBuffer());
+      const k = findMp3Sync(win, 0);
+      if (k >= 0) end += k;
+    }
+    let ab;
+    try { ab = await ctx.decodeAudioData(await file.slice(pos, end).arrayBuffer()); }
+    catch (e) {
+      if (end === file.size && end - pos < 256 * 1024) break; // restos al final (etiquetas)
+      throw e;
+    }
+    const pcm = await downmixToInt16(ab);
+    pieces.push(pcm); total += pcm.length;
+    pos = end;
+    onProgress(pos / file.size);
+  }
+  return concatInt16(pieces, total);
+}
+
+async function decodeWavSliced(file, onProgress) {
+  const head = new Uint8Array(await file.slice(0, 1 << 20).arrayBuffer());
+  const info = parseWav(head, file.size);
+  if (!info || (info.format !== 1 && info.format !== 3) || !info.blockAlign) throw new Error('WAV no compatible');
+  const ctx = makeDecodeCtx();
+  const per = Math.floor((24 << 20) / info.blockAlign) * info.blockAlign;
+  const endData = info.dataOffset + info.dataSize;
+  const pieces = [];
+  let total = 0, pos = info.dataOffset;
+  while (pos < endData) {
+    let e = Math.min(endData, pos + per);
+    e = pos + Math.floor((e - pos) / info.blockAlign) * info.blockAlign;
+    if (e <= pos) break;
+    const buf = await new Blob([wavHeaderFmt(info, e - pos), file.slice(pos, e)]).arrayBuffer();
+    const pcm = await downmixToInt16(await ctx.decodeAudioData(buf));
+    pieces.push(pcm); total += pcm.length;
+    pos = e;
+    onProgress((pos - info.dataOffset) / info.dataSize);
+  }
+  return concatInt16(pieces, total);
+}
+
+const MAX_WHOLE = 250e6;   // por encima de esto no se lee un archivo entero en memoria
+
+async function decodeMp4(file, onProgress) {
+  const ctx = makeDecodeCtx();
+  const pieces = [];
+  let total = 0;
+  await mp4ExtractAudio(file, async bytes => {
+    let ab;
+    try { ab = await ctx.decodeAudioData(bytes.buffer); }
+    catch (e) { throw new Mp4Error('decode', 'El navegador no ha podido decodificar el sonido extraído.'); }
+    const pcm = await downmixToInt16(ab);
+    pieces.push(pcm); total += pcm.length;
+  }, onProgress);
+  return concatInt16(pieces, total);
+}
+
+function tooBigError(file) {
+  return new UserError(`Este archivo pesa ${fmtBytes(file.size)} y en su formato el navegador tendría que cargarlo entero, lo que puede bloquear el ordenador. Usa la misma grabación en MP4 o en MP3.`);
+}
+
+async function decodeFile(file, onProgress) {
+  const name = file.name.toLowerCase();
+  const isMp3 = file.type === 'audio/mpeg' || file.type === 'audio/mp3' || name.endsWith('.mp3');
+  const isWav = /wav/.test(file.type) || name.endsWith('.wav');
+  let isMp4 = false;
+  try { isMp4 = await mp4Sniff(file); } catch (e) { /* no es MP4 */ }
+  if (isMp4) {
+    try { return await decodeMp4(file, onProgress); }
+    catch (e) {
+      console.warn('Lectura del MP4 por partes:', e);
+      if (e instanceof Mp4Error && e.kind === 'noaudio') throw new UserError('Este vídeo no tiene sonido, así que no hay nada que transcribir.');
+      if (e instanceof Mp4Error && e.kind === 'decode') throw new UserError('Este navegador no ha podido decodificar el sonido del vídeo (AAC). Ábrelo con Chrome, Edge o Brave actualizados, o usa la misma grabación en MP3.');
+      if (file.size > MAX_WHOLE) {
+        if (e instanceof Mp4Error && e.kind === 'codec') throw new UserError(`El sonido de este vídeo está en un formato que el navegador no puede leer por partes (${e.message}) y el archivo es demasiado grande para cargarlo entero. Exporta el vídeo con sonido AAC o conviértelo a MP3.`);
+        throw decodeError();
+      }
+    }
+  }
+  if (isMp3 && file.size > 40e6) {
+    try { return await decodeMp3Sliced(file, onProgress); } catch (e) { console.warn('MP3 por partes falló', e); }
+  }
+  if (isWav && file.size > 150e6) {
+    try { return await decodeWavSliced(file, onProgress); } catch (e) { console.warn('WAV por partes falló', e); }
+  }
+  if (file.size > MAX_WHOLE) throw tooBigError(file);
+  return decodeWhole(file);
+}
+
+/* ---------- carga del archivo ---------- */
+function looksVideo(file) {
+  if (file.type) return file.type.startsWith('video/');
+  return /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(file.name);
+}
+
+async function loadFile(file) {
+  if (!file || state.running) return;
+  const hasWork = state.segments.some(s => s.status === 'done');
+  if (hasWork && !confirm('Se descartará la transcripción actual. ¿Quieres abrir el archivo nuevo?')) return;
+
+  const myId = ++state.prepId;
+  if (state.url) URL.revokeObjectURL(state.url);
+  Object.assign(state, {
+    file, base: file.name.replace(/\.[^.]+$/, '') || 'transcripcion', url: URL.createObjectURL(file), isVideo: looksVideo(file),
+    pcm: null, duration: 0, peaks: null, segments: [], edited: null, editing: false, preparing: true
+  });
+
+  els.drop.hidden = true;
+  els.workspace.hidden = false;
+  els.video.hidden = !state.isVideo;
+  els.audio.hidden = state.isVideo;
+  const media = currentMedia(), other = state.isVideo ? els.audio : els.video;
+  other.removeAttribute('src'); other.load();
+  media.src = state.url;
+  els.pickFile.textContent = 'Cambiar archivo';
+  els.fileInfo.innerHTML = `<strong>${esc(file.name)}</strong><span>${fmtBytes(file.size)}</span>`;
+  hideNotice();
+  closeEditor(false);
+  renderTranscript(true);
+  drawWave();
+  setStatus('Analizando el audio…', '');
+  setProgress(null);
+  refreshUI();
+
+  try {
+    const pcm = await decodeFile(file, p => { if (myId === state.prepId) setProgress(p); });
+    if (myId !== state.prepId) return;
+    if (pcm.length < SR) throw new UserError('El audio dura menos de un segundo. Elige otro archivo.');
+    state.pcm = pcm;
+    state.duration = pcm.length / SR;
+    setStatus('Dibujando la forma de onda…');
+    await tick();
+    state.peaks = computePeaks(pcm, 4000);
+    state.segments = planSegments(pcm, SR).map(s => ({ start: s.start, end: s.end, status: 'pending', text: '', partial: '', lines: [], winIdx: 0 }));
+    state.preparing = false;
+    els.fileInfo.innerHTML = `<strong>${esc(file.name)}</strong><span>${fmtBytes(file.size)}, ${fmtDuration(state.duration)}</span>`;
+    const n = state.segments.length;
+    setStatus(n === 1
+      ? `Duración ${fmtDuration(state.duration)}. Se transcribirá de una vez.`
+      : `Duración ${fmtDuration(state.duration)}. Se transcribirá en ${n} partes de unos ${Math.round(TARGET_SEC / 60)} minutos.`, '');
+    setProgress(0);
+    renderTranscript(true);
+    drawWave();
+  } catch (e) {
+    if (myId !== state.prepId) return;
+    console.error(e);
+    state.preparing = false;
+    setStatus('No se ha podido preparar el audio.', '');
+    setProgress(0);
+    showNotice(e instanceof UserError ? e.message : decodeError().message, e instanceof UserError ? '' : (e && e.message));
+  }
+  refreshUI();
+}
+
+/* ---------- forma de onda ---------- */
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function drawWave() {
+  const c = els.wave, w = c.clientWidth, h = c.clientHeight;
+  if (!w || !h) return;
+  const dpr = window.devicePixelRatio || 1;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  const colors = {
+    pending: cssVar('--rule-strong'), active: cssVar('--signal'), done: cssVar('--ink'),
+    empty: cssVar('--rule-strong'), warn: cssVar('--alert'), error: cssVar('--alert')
+  };
+  const step = 3, bw = 2, bars = Math.floor(w / step);
+  if (!state.peaks) {
+    g.fillStyle = cssVar('--rule');
+    for (let b = 0; b < bars; b++) g.fillRect(b * step, h / 2 - 1, bw, 2);
+    return;
+  }
+  const P = state.peaks, B = P.length, segs = state.segments, total = state.pcm.length;
+  let max = 0;
+  for (let i = 0; i < B; i++) if (P[i] > max) max = P[i];
+  max = max || 1;
+  let si = 0;
+  for (let b = 0; b < bars; b++) {
+    const p0 = Math.floor(b * B / bars), p1 = Math.max(p0 + 1, Math.floor((b + 1) * B / bars));
+    let m = 0;
+    for (let k = p0; k < p1; k++) if (P[k] > m) m = P[k];
+    const sample = (b + 0.5) / bars * total;
+    while (si < segs.length - 1 && sample >= segs[si].end) si++;
+    const bh = Math.max(2, Math.pow(m / max, 0.75) * (h - 6));
+    g.fillStyle = colors[(segs[si] && segs[si].status) || 'pending'];
+    g.fillRect(b * step, (h - bh) / 2, bw, bh);
+  }
+  g.fillStyle = cssVar('--paper');
+  for (let i = 1; i < segs.length; i++) { const x = Math.round(segs[i].start / total * w); g.fillRect(x - 2, 0, 3, h); }
+  const media = currentMedia();
+  if (media && media.currentTime > 0 && state.duration) {
+    const x = Math.round(media.currentTime / state.duration * w);
+    g.fillStyle = cssVar('--paper'); g.fillRect(x - 2, 0, 4, h);
+    g.fillStyle = cssVar('--signal'); g.fillRect(x - 1, 0, 2, h);
+  }
+}
+
+function waveTimeAt(evt) {
+  const r = els.wave.getBoundingClientRect();
+  const x = Math.max(0, Math.min(r.width, evt.clientX - r.left));
+  return { x, t: x / r.width * state.duration };
+}
+els.wave.addEventListener('mousemove', evt => {
+  if (!state.duration) return;
+  const { x, t } = waveTimeAt(evt);
+  const sample = t * SR;
+  const i = Math.max(0, state.segments.findIndex(s => sample < s.end));
+  els.tip.textContent = state.segments.length > 1 ? `${fmtClock(t, withHours())}, parte ${i + 1} de ${state.segments.length}` : fmtClock(t, withHours());
+  els.tip.style.left = `${x}px`;
+  els.tip.hidden = false;
+});
+els.wave.addEventListener('mouseleave', () => { els.tip.hidden = true; });
+els.wave.addEventListener('click', evt => {
+  if (!state.duration) return;
+  const media = currentMedia();
+  media.currentTime = waveTimeAt(evt).t;
+  drawWave();
+});
+['timeupdate', 'seeked', 'loadedmetadata'].forEach(ev => {
+  els.video.addEventListener(ev, drawWave);
+  els.audio.addEventListener(ev, drawWave);
+});
+if ('ResizeObserver' in window) new ResizeObserver(() => drawWave()).observe(els.wave);
+else window.addEventListener('resize', drawWave);
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', drawWave);
+}
+
+/* ---------- transcripción en pantalla ---------- */
+function transcriptText() {
+  const ts = state.runOpts ? state.runOpts.timestamps : els.optTs.checked;
+  return joinChunks(state.segments.map(s => s.text), ts);
+}
+function currentText() {
+  if (state.editing) return els.editor.value;
+  if (state.edited !== null) return state.edited;
+  return transcriptText();
+}
+
+function renderTranscript(rebuild) {
+  if (state.edited !== null) {
+    els.reading.innerHTML = textToHtml(state.edited);
+    els.reading.dataset.mode = 'edited';
+  } else {
+    if (rebuild || els.reading.dataset.mode !== 'segs' || els.reading.childElementCount !== state.segments.length) {
+      els.reading.innerHTML = state.segments.map((s, i) => `<div class="seg" data-i="${i}"></div>`).join('');
+      els.reading.dataset.mode = 'segs';
+    }
+    state.segments.forEach((s, i) => renderSeg(i));
+  }
+  updateEmpty();
+}
+function renderSeg(i) {
+  const el = els.reading.querySelector(`.seg[data-i="${i}"]`);
+  if (!el) return;
+  const s = state.segments[i];
+  const text = s.status === 'active' ? s.partial : s.text;
+  el.innerHTML = text ? textToHtml(text) : '';
+  el.classList.toggle('active', s.status === 'active' && !!text);
+}
+function updateEmpty() {
+  const has = state.edited !== null ? !!state.edited.trim() : state.segments.some(s => (s.status === 'active' ? s.partial : s.text));
+  els.emptyText.hidden = has || state.editing;
+}
+
+let renderQueued = null;
+function scheduleSegRender(i) {
+  if (renderQueued !== null && renderQueued !== i) renderSeg(renderQueued);
+  if (renderQueued === i) return;
+  renderQueued = i;
+  requestAnimationFrame(() => {
+    const sheet = els.panelText;
+    const atBottom = sheet.scrollHeight - sheet.scrollTop - sheet.clientHeight < 80;
+    if (renderQueued !== null) renderSeg(renderQueued);
+    renderQueued = null;
+    updateEmpty();
+    if (atBottom) sheet.scrollTop = sheet.scrollHeight;
+  });
+}
+
+els.reading.addEventListener('click', evt => {
+  const b = evt.target.closest('.ts');
+  if (!b) return;
+  const media = currentMedia();
+  media.currentTime = +b.dataset.t;
+  const p = media.play();
+  if (p && p.catch) p.catch(() => {});
+  if (state.isVideo) media.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+
+/* ---------- edición ---------- */
+function openEditor() {
+  els.editor.value = currentText();
+  state.editing = true;
+  els.reading.hidden = true;
+  els.editor.hidden = false;
+  els.edit.textContent = 'Guardar cambios';
+  updateEmpty();
+  els.editor.focus();
+}
+function closeEditor(save) {
+  if (!state.editing) return;
+  if (save) {
+    const v = els.editor.value;
+    state.edited = v === transcriptText() ? null : v;
+  }
+  state.editing = false;
+  els.editor.hidden = true;
+  els.reading.hidden = false;
+  els.edit.textContent = 'Editar texto';
+  renderTranscript(true);
+}
+els.edit.addEventListener('click', () => { if (state.editing) closeEditor(true); else openEditor(); refreshUI(); });
+
+/* ---------- descarga del modelo por lotes ---------- */
+/* Los archivos grandes del modelo se piden por trozos (lotes) con reintentos y cada trozo se guarda al llegar.
+   Si la conexión se corta o se pulsa Detener, lo ya descargado se conserva y se reanuda desde ahí.
+   Al terminar, el archivo queda en la misma caché que usa Transformers.js, que lo encuentra ya descargado. */
+function dlSleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) { reject(abortError()); return; }
+    const onAbort = () => { clearTimeout(id); reject(abortError()); };
+    const id = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function modelOnnxFiles(model, dtype) {
+  return ['encoder_model', 'decoder_model_merged'].map(m => {
+    const dt = typeof dtype === 'string' ? dtype : (dtype[m] || 'fp32');
+    return `onnx/${m}${DTYPE_SUFFIX[dt] || ''}.onnx`;
+  });
+}
+
+/* Tamaño del archivo (0 si el servidor no admite descargas por trozos). */
+async function remoteSize(url, signal) {
+  for (let a = 1; ; a++) {
+    try {
+      const res = await fetch(url, { headers: { Range: 'bytes=0-0' }, signal });
+      if (res.body && res.body.cancel) res.body.cancel().catch(() => {});
+      if (res.status !== 206) return 0;
+      const m = /\/(\d+)\s*$/.exec(res.headers.get('Content-Range') || '');
+      if (m) return +m[1];
+      const head = await fetch(url, { method: 'HEAD', signal });
+      return +(head.headers.get('Content-Length') || 0);
+    } catch (e) {
+      if (signal.aborted) throw abortError();
+      if (a >= 3) throw e;
+      await dlSleep(1000 * a, signal);
+    }
+  }
+}
+
+async function fetchRange(url, a, b, signal) {
+  const ctl = new AbortController();
+  const onAbort = () => ctl.abort();
+  signal.addEventListener('abort', onAbort, { once: true });
+  const timer = setTimeout(() => ctl.abort(), DL_STALL_MS);
+  try {
+    let res;
+    try { res = await fetch(url, { headers: { Range: `bytes=${a}-${b}` }, signal: ctl.signal }); }
+    catch (err) {
+      if (!signal.aborted && err && err.name === 'AbortError') throw new Error(`el servidor no ha respondido en ${DL_STALL_MS / 1000} s`);
+      throw err;
+    }
+    if (res.status === 200) {
+      if (res.body && res.body.cancel) res.body.cancel().catch(() => {});
+      const e = new Error('el servidor ha devuelto el archivo entero en vez del trozo pedido');
+      e.noRange = true;
+      throw e;
+    }
+    if (res.status !== 206) throw new Error(`el servidor ha respondido HTTP ${res.status}`);
+    const blob = await res.blob();
+    if (blob.size !== b - a + 1) throw new Error(`el trozo llegó incompleto (${blob.size} de ${b - a + 1} bytes)`);
+    return blob;
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', onAbort);
+  }
+}
+
+async function fetchChunkRetry(url, a, b, signal, onRetry) {
+  for (let attempt = 1; ; attempt++) {
+    try { return await fetchRange(url, a, b, signal); }
+    catch (e) {
+      if (signal.aborted) throw abortError();
+      if (e.noRange || attempt >= DL_ATTEMPTS) throw e;
+      const wait = Math.min(30, 2 ** (attempt - 1));
+      onRetry(attempt, wait, e);
+      await dlSleep(wait * 1000, signal);
+    }
+  }
+}
+
+/* Descarga por lotes los .onnx del modelo que aún no están en la caché. Devuelve { files, skipped }. */
+async function prefetchModel(model, dtype, signal, onEvent) {
+  const out = { files: 0, skipped: '' };
+  if (typeof caches === 'undefined') { out.skipped = 'este navegador no ofrece caché (¿archivo abierto con file://?)'; return out; }
+  let store, part;
+  try { store = await caches.open('transformers-cache'); part = await caches.open('transcriptor-partial'); }
+  catch (e) { out.skipped = 'no se puede usar la caché del navegador: ' + errText(e); return out; }
+
+  const jobs = [];
+  for (const file of modelOnnxFiles(model, dtype)) {
+    const url = `https://huggingface.co/${model}/resolve/main/${file}`;
+    if (await store.match(url)) continue;
+    let size;
+    try { size = await remoteSize(url, signal); }
+    catch (e) {
+      if (signal.aborted) throw abortError();
+      out.skipped = `no se ha podido consultar ${file}: ${errText(e)}`;
+      return out;
+    }
+    if (!size) { out.skipped = `el servidor no admite descargar ${file} por trozos`; return out; }
+    const n = Math.ceil(size / DL_CHUNK);
+    jobs.push({ file, url, size, n, done: new Set(), key: i => `${DL_PART_HOST}${encodeURIComponent(url)}/${size}/${DL_CHUNK}/${i}` });
+  }
+  if (!jobs.length) return out;
+
+  const total = jobs.reduce((a, j) => a + j.size, 0);
+  const chunksTotal = jobs.reduce((a, j) => a + j.n, 0);
+  const lenOf = (j, i) => Math.min(j.size, (i + 1) * DL_CHUNK) - i * DL_CHUNK;
+  let loaded = 0, chunksDone = 0;
+  for (const j of jobs) for (let i = 0; i < j.n; i++) {
+    if (await part.match(j.key(i))) { j.done.add(i); loaded += lenOf(j, i); chunksDone++; }
+  }
+  const samples = [];
+  const emit = () => {
+    const now = performance.now();
+    samples.push([now, loaded]);
+    while (samples.length > 2 && now - samples[0][0] > 8000) samples.shift();
+    const dt = (now - samples[0][0]) / 1000;
+    onEvent({ type: 'progress', loaded, total, chunksDone, chunksTotal, speed: dt > 1 ? (loaded - samples[0][1]) / dt : 0 });
+  };
+  emit();
+
+  for (const j of jobs) {
+    const pending = [];
+    for (let i = 0; i < j.n; i++) if (!j.done.has(i)) pending.push(i);
+    if (pending.length) {
+      let next = 0, failure = null;
+      const run = async () => {
+        while (!failure) {
+          const idx = next++;
+          if (idx >= pending.length) return;
+          const i = pending[idx], a = i * DL_CHUNK, b = a + lenOf(j, i) - 1;
+          try {
+            const blob = await fetchChunkRetry(j.url, a, b, signal,
+              (attempt, wait, e) => onEvent({ type: 'retry', file: j.file, chunk: i + 1, of: j.n, attempt, wait, error: errText(e) }));
+            await part.put(j.key(i), new Response(blob));
+            j.done.add(i); loaded += blob.size; chunksDone++;
+            emit();
+          } catch (e) { failure = failure || e; return; }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(DL_PARALLEL, pending.length) }, run));
+      if (failure) {
+        if (signal.aborted) throw abortError();
+        if (failure.noRange) { out.skipped = `el servidor no admite descargar ${j.file} por trozos`; return out; }
+        throw new WhisperError('download', `${j.file}: ${errText(failure)}`);
+      }
+    }
+    // montar el archivo completo en la caché de Transformers.js
+    const blobs = [];
+    for (let i = 0; i < j.n; i++) {
+      const r = await part.match(j.key(i));
+      if (!r) throw new WhisperError('download', `${j.file}: falta el lote ${i + 1} en la caché del navegador`);
+      blobs.push(await r.blob());
+    }
+    const whole = new Blob(blobs);
+    if (whole.size !== j.size) throw new WhisperError('download', `${j.file}: el archivo montado mide ${whole.size} bytes y debería medir ${j.size}`);
+    try { await store.put(j.url, new Response(whole, { status: 200, headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': String(j.size) } })); }
+    catch (e) { throw new WhisperError('download', `${j.file}: no se ha podido guardar en el navegador (¿falta espacio?): ${errText(e)}`); }
+    for (let i = 0; i < j.n; i++) await part.delete(j.key(i));
+    out.files++;
+  }
+  return out;
+}
+
+function showBatch(ev) {
+  if (ev.type === 'retry') {
+    setStatus(`La descarga se ha cortado (${ev.error}). Se reintenta el lote ${ev.chunk} de ${ev.of} (intento ${ev.attempt + 1} de ${DL_ATTEMPTS}) en ${ev.wait} s…`);
+    return;
+  }
+  const frac = ev.total ? ev.loaded / ev.total : 0;
+  setProgress(frac);
+  setStatus(`Descargando el modelo por lotes… ${Math.round(frac * 100)} %`,
+    `Lote ${Math.min(ev.chunksDone + 1, ev.chunksTotal)} de ${ev.chunksTotal} · ${fmtBytes(ev.loaded)} de ${fmtBytes(ev.total)}${ev.speed ? ' · ' + fmtBytes(ev.speed) + '/s' : ''}`);
+}
+
+/* ---------- Whisper, en un trabajador del navegador ---------- */
+function abortError() { const e = new Error('Detenido'); e.name = 'AbortError'; return e; }
+
+/* Plan B si el navegador no deja arrancar el trabajador: la misma lógica, en la página principal. */
+let libPromise = null;
+let inlineQueue = Promise.resolve();
+function getLib() {
+  if (!libPromise) {
+    libPromise = import(LIB_URL).then(lib => {
+      lib.env.allowLocalModels = false;
+      return lib;
+    }).catch(e => { libPromise = null; throw e; });
+  }
+  return libPromise;
+}
+class InlineBackend extends EventTarget {
+  constructor() {
+    super();
+    this.dead = false;
+    this.handle = new Function(document.getElementById('whisperHandler').textContent + '\nreturn handle;')();
+  }
+  emit(data) { if (!this.dead) this.dispatchEvent(new MessageEvent('message', { data })); }
+  postMessage(m) {
+    inlineQueue = inlineQueue.then(async () => {
+      if (this.dead) return;
+      let lib;
+      try { lib = await getLib(); }
+      catch (err) { this.emit({ type: 'error', id: m.id, start: true, message: errText(err), name: err && err.name, stack: err && err.stack ? String(err.stack) : '' }); return; }
+      await this.handle(lib, m, d => this.emit(d));
+    });
+  }
+  terminate() { this.dead = true; }
+}
+
+function getWorker() {
+  if (state.worker) return state.worker;
+  if (state.mode === 'inline') { state.worker = new InlineBackend(); state.modelKey = null; return state.worker; }
+  const handler = document.getElementById('whisperHandler').textContent;
+  const src = `import * as lib from '${LIB_URL}';\nlib.env.allowLocalModels = false;\n${handler}\nself.onmessage = e => handle(lib, e.data, m => self.postMessage(m));\n`;
+  state.workerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+  state.worker = new Worker(state.workerUrl, { type: 'module' });
+  state.modelKey = null;
+  return state.worker;
+}
+
+function killWorker() {
+  if (state.worker) { state.worker.terminate(); state.worker = null; }
+  if (state.workerUrl) { URL.revokeObjectURL(state.workerUrl); state.workerUrl = null; }
+  state.modelKey = null;
+  setModelStatus('idle', IDLE_MODEL_MSG);
+}
+
+/* Envía un mensaje al trabajador y espera su respuesta. Si se cancela, se mata el trabajador para parar el cálculo al instante. */
+function workerCallOnce(msg, transfer, signal, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) { reject(abortError()); return; }
+    let w;
+    try { w = getWorker(); }
+    catch (err) { killWorker(); reject(new WhisperError('start', errText(err))); return; }
+    const id = ++state.callId;
+    const cleanup = () => {
+      w.removeEventListener('message', onMsg);
+      w.removeEventListener('error', onErr);
+      signal.removeEventListener('abort', onAbort);
+    };
+    const onMsg = ev => {
+      const m = ev.data || {};
+      if (m.id !== id) return;
+      if (m.type === 'progress') { if (onProgress) onProgress(m); return; }
+      cleanup();
+      if (m.type === 'error') {
+        const we = new WhisperError(m.start ? 'start' : (msg.type === 'load' ? 'load' : 'run'), m.message);
+        we.remoteName = m.name || ''; we.remoteStack = m.stack || '';
+        reject(we);
+      }
+      else resolve(m);
+    };
+    const onErr = ev => {
+      cleanup();
+      if (ev.preventDefault) ev.preventDefault();
+      killWorker();
+      reject(new WhisperError('start', (ev.message || 'El navegador no ha podido arrancar el trabajador de Whisper y no da más detalles') + (ev.filename ? ` (${ev.filename}:${ev.lineno || '?'})` : '')));
+    };
+    const onAbort = () => { cleanup(); killWorker(); reject(abortError()); };
+    w.addEventListener('message', onMsg);
+    w.addEventListener('error', onErr);
+    signal.addEventListener('abort', onAbort, { once: true });
+    w.postMessage(Object.assign({}, msg, { id }), transfer || []);
+  });
+}
+
+async function workerCall(msg, transfer, signal, onProgress) {
+  try { return await workerCallOnce(msg, transfer, signal, onProgress); }
+  catch (e) {
+    if (e.kind !== 'start' || state.mode !== 'worker') throw e;
+    console.warn('El trabajador no ha arrancado; se usa la página principal:', e);
+    state.mode = 'inline';
+    setStatus('El navegador no ha dejado usar un trabajador en segundo plano. Se usa la página principal: la pantalla puede ir más lenta.', '');
+    return await workerCallOnce(msg, transfer, signal, onProgress);
+  }
+}
+
+async function hasWebGPU() {
+  if (state.gpu === null) {
+    try { state.gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch (e) { state.gpu = false; }
+  }
+  return state.gpu;
+}
+
+function modelName(id) { return 'Whisper ' + String(id).split('/').pop().replace(/^whisper-/, ''); }
+
+function showDownload(p) {
+  if (!p.total) { setProgress(null); return; }
+  const frac = Math.min(1, p.loaded / p.total);
+  setProgress(frac);
+  setStatus(p.loaded >= p.total ? 'Iniciando el modelo, puede tardar un momento…' : `Descargando el modelo… ${Math.round(frac * 100)} %`,
+    `${fmtBytes(p.loaded)} de ${fmtBytes(p.total)}`);
+}
+
+/* Carga el modelo si hace falta. En modo automático, si la GPU falla se prueba con la CPU. */
+async function ensureModel(o, signal) {
+  const cfg = MODELS[o.model];
+  if (!cfg) throw new WhisperError('load', 'Modelo desconocido: ' + o.model);
+  const wantGpu = o.device === 'webgpu' || (o.device === 'auto' && await hasWebGPU());
+  const load = async dev => {
+    const key = o.model + '|' + dev;
+    if (state.worker && state.modelKey === key) return dev;
+    killWorker();
+    setModelStatus('idle', 'Preparando el modelo…');
+    const dtype = dev === 'webgpu' ? cfg.gpu : cfg.cpu;
+    setStatus('Preparando la descarga del modelo…', '');
+    setProgress(null);
+    const pre = await prefetchModel(o.model, dtype, signal, showBatch);
+    state.dlNote = pre.skipped ? `omitida (${pre.skipped}); se usa la descarga normal` : `correcta (${pre.files} archivo(s) descargados por lotes de ${DL_CHUNK / 1048576} MB)`;
+    if (pre.skipped) console.warn('Descarga por lotes omitida:', pre.skipped);
+    await workerCall({ type: 'load', model: o.model, device: dev, dtype }, null, signal, showDownload);
+    state.modelKey = key;
+    setModelStatus('ok', `${modelName(o.model)} listo. Se usa ${dev === 'webgpu' ? 'la GPU' : 'la CPU'}.`);
+    return dev;
+  };
+  try { return await load(wantGpu ? 'webgpu' : 'wasm'); }
+  catch (e) {
+    if (e.name === 'AbortError' || e.kind === 'download' || !wantGpu || o.device !== 'auto') throw e;
+    console.warn('La GPU no ha funcionado, se usa la CPU:', e);
+    setStatus('La GPU no ha funcionado con este modelo. Se prueba con la CPU, que es más lenta.', '');
+    return await load('wasm');
+  }
+}
+
+/* ---------- informe técnico de un error ---------- */
+async function probeUrl(url) {
+  const t0 = performance.now();
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 7000);
+    const res = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: ctl.signal });
+    clearTimeout(timer);
+    return `${res.ok ? 'OK' : 'ERROR'} ${res.status} (${Math.round(performance.now() - t0)} ms)`;
+  } catch (e) {
+    return `NO ACCESIBLE: ${e && e.name === 'AbortError' ? 'sin respuesta en 7 s' : errText(e)}`;
+  }
+}
+
+async function buildReport(e) {
+  const o = state.runOpts || {};
+  const L = [];
+  const add = (k, v) => L.push(`${k}: ${v}`);
+  L.push('== Error ==');
+  add('Tipo', (e && e.kind) || (e && e.name) || 'desconocido');
+  add('Mensaje completo', errText(e));
+  if (e && e.remoteName) add('Nombre del error', e.remoteName);
+  if (e && e.remoteStack) L.push('Pila (dentro de Whisper):', ...e.remoteStack.split('\n').slice(0, 8).map(x => '  ' + x.trim()));
+  else if (e && e.stack) L.push('Pila:', ...String(e.stack).split('\n').slice(0, 6).map(x => '  ' + x.trim()));
+
+  L.push('', '== Qué se estaba haciendo ==');
+  add('Fase', e && e.kind === 'download' ? 'descarga del modelo por lotes' : e && (e.kind === 'load' || e.kind === 'start') ? 'carga de Whisper y del modelo' : 'transcripción de una ventana de audio');
+  add('Modelo', o.model || els.model.value);
+  add('Procesador pedido', o.device || els.device.value);
+  add('Procesador en uso', state.modelKey ? state.modelKey.split('|')[1] : '(modelo sin cargar)');
+  const cfg = MODELS[o.model || els.model.value];
+  if (cfg) add('Precisión (GPU / CPU)', `${JSON.stringify(cfg.gpu)} / ${JSON.stringify(cfg.cpu)}`);
+  add('Descarga por lotes', state.dlNote || 'no se llegó a hacer');
+  add('Dónde se ejecuta Whisper', state.mode === 'inline' ? 'en la página principal (el trabajador no pudo arrancar)' : 'en un trabajador en segundo plano');
+
+  L.push('', '== Página y navegador ==');
+  add('Se abrió como', location.protocol === 'file:' ? 'archivo local (file://)' : `${location.protocol}//${location.host}`);
+  add('Contexto seguro', String(window.isSecureContext));
+  add('Aislamiento entre orígenes (hilos wasm)', String(window.crossOriginIsolated));
+  add('Navegador', navigator.userAgent);
+  add('Sistema', navigator.platform || 'desconocido');
+  add('Núcleos de CPU', navigator.hardwareConcurrency || 'desconocido');
+  add('Memoria aproximada (GB)', navigator.deviceMemory || 'no informa');
+
+  if (!navigator.gpu) add('WebGPU', 'NO disponible en este navegador');
+  else {
+    try {
+      const ad = await navigator.gpu.requestAdapter();
+      if (!ad) add('WebGPU', 'el navegador la ofrece pero no hay adaptador de GPU utilizable');
+      else {
+        let info = ad.info;
+        if (!info && ad.requestAdapterInfo) info = await ad.requestAdapterInfo();
+        info = info || {};
+        add('WebGPU', `disponible (${[info.vendor, info.architecture, info.description || info.device].filter(Boolean).join(' · ') || 'sin datos de la GPU'})`);
+        add('  Soporta float16 (shader-f16)', String(!!(ad.features && ad.features.has && ad.features.has('shader-f16'))));
+        if (ad.limits) add('  Tamaño máximo de búfer (MB)', Math.round(ad.limits.maxBufferSize / 1048576));
+      }
+    } catch (x) { add('WebGPU', 'error al consultar la GPU: ' + errText(x)); }
+  }
+
+  L.push('', '== Conexiones necesarias (comprobadas ahora) ==');
+  const urls = [
+    ['Librería Transformers.js', LIB_URL],
+    ['Motor de cálculo (.mjs)', `${LIB_URL}/dist/ort-wasm-simd-threaded.jsep.mjs`],
+    ['Motor de cálculo (.wasm)', `${LIB_URL}/dist/ort-wasm-simd-threaded.jsep.wasm`],
+    ['Modelo en Hugging Face', `https://huggingface.co/${o.model || els.model.value}/resolve/main/config.json`]
+  ];
+  const results = await Promise.all(urls.map(([, u]) => probeUrl(u)));
+  urls.forEach(([name, u], i) => { add(name, results[i]); L.push('    ' + u); });
+
+  if (state.errLog.length) { L.push('', '== Otros errores registrados por la página =='); state.errLog.forEach(x => L.push('- ' + x)); }
+  L.push('', 'Copia este informe si necesitas pedir ayuda.');
+  return L.join('\n');
+}
+
+async function fillReport(e) {
+  els.report.hidden = false;
+  els.report.open = true;
+  els.reportText.textContent = 'Recogiendo datos técnicos y comprobando las conexiones…';
+  try { els.reportText.textContent = await buildReport(e); }
+  catch (x) { els.reportText.textContent = 'No se ha podido generar el informe: ' + errText(x) + '\n\nError original: ' + errText(e); }
+}
+
+function linesToText(lines, o) {
+  const terms = o.terms || [];
+  const mapped = terms.length ? lines.map(l => ({ start: l.start, end: l.end, text: applyTerms(l.text, terms) })) : lines;
+  return chunksToText(mapped, o.timestamps, withHours());
+}
+
+/* Transcribe una parte (unos 6 min) ventana a ventana. Si se para, "Continuar" sigue desde la última ventana hecha. */
+async function transcribeSegment(i, signal) {
+  const o = state.runOpts, s = state.segments[i];
+  const n = state.segments.length;
+  const offset = s.start / SR;
+  const seg = state.pcm.subarray(s.start, s.end);
+  const wins = planSegments(seg, SR, WIN_TARGET_SEC, WIN_MAX_SEC, WIN_SEARCH_SEC);
+  const doneBefore = state.segments.filter(isDoneSeg).length;
+
+  for (let w = s.winIdx; w < wins.length; w++) {
+    if (signal.aborted) throw abortError();
+    const win = wins[w];
+    const dur = (win.end - win.start) / SR;
+    const t0 = performance.now();
+    if (dur >= MIN_WIN_SEC) {
+      const part = seg.subarray(win.start, win.end);
+      if (!isSilent(part)) {
+        if (state.mode === 'inline') await new Promise(r => setTimeout(r, 30));
+        const f32 = toFloat32(part);
+        const res = await workerCall({ type: 'run', audio: f32, language: o.lang }, [f32.buffer], signal);
+        const base = offset + win.start / SR;
+        const chunks = res.chunks || [];
+        for (const c of chunks) {
+          const t = String(c.text || '').trim();
+          if (!t) continue;
+          const ts = Array.isArray(c.timestamp) ? c.timestamp : [];
+          let a = Number.isFinite(ts[0]) ? ts[0] : 0;
+          let b = Number.isFinite(ts[1]) ? ts[1] : dur;
+          a = Math.min(Math.max(a, 0), dur);
+          b = Math.min(Math.max(b, a), dur);
+          s.lines.push({ start: base + a, end: base + b, text: t });
+        }
+        if (!chunks.length && res.text && res.text.trim()) s.lines.push({ start: base, end: base + dur, text: res.text.trim() });
+      }
+    }
+    s.winIdx = w + 1;
+    state.doneSec += dur;
+    state.workMs += performance.now() - t0;
+    s.partial = linesToText(s.lines, o);
+    scheduleSegRender(i);
+    setProgress((doneBefore + s.winIdx / wins.length) / n);
+    els.statusAside.textContent = etaText();
+  }
+  const text = linesToText(s.lines, o);
+  return text ? { status: 'done', text } : { status: 'empty', text: '' };
+}
+
+/* ---------- proceso completo ---------- */
+async function keepAwake(on) {
+  try {
+    if (on && 'wakeLock' in navigator && !state.wake) state.wake = await navigator.wakeLock.request('screen');
+    if (!on && state.wake) { await state.wake.release(); state.wake = null; }
+  } catch (e) { /* no disponible */ }
+}
+
+function etaText() {
+  if (state.doneSec < 20 || !state.workMs) return '';
+  const left = Math.max(0, state.todoSec - state.doneSec);
+  const sec = left * (state.workMs / 1000) / state.doneSec;
+  if (sec < 60) return 'Queda menos de un minuto';
+  return `Quedan unos ${fmtDuration(Math.round(sec / 60) * 60)}`;
+}
+function updateProgress() {
+  const n = state.segments.length || 1;
+  const done = state.segments.filter(isDoneSeg).length;
+  setProgress(done / n);
+  return done;
+}
+
+async function startTranscription() {
+  if (!state.pcm || state.running) return;
+  const allDone = state.segments.every(isDoneSeg);
+  if (state.edited !== null || state.editing) {
+    if (!confirm('Al transcribir otra vez se perderán los cambios que has hecho en el texto. ¿Seguir?')) return;
+    closeEditor(false);
+    state.edited = null;
+  }
+  if (allDone) state.segments.forEach(s => { s.status = 'pending'; s.text = ''; s.partial = ''; s.lines = []; s.winIdx = 0; });
+  state.runOpts = {
+    model: els.model.value, device: els.device.value, lang: els.lang.value,
+    timestamps: els.optTs.checked, terms: parseTerms(els.terms.value)
+  };
+  state.running = true;
+  state.controller = new AbortController();
+  const signal = state.controller.signal;
+  state.startedAt = performance.now();
+  state.doneSec = 0;
+  state.workMs = 0;
+  state.todoSec = state.segments.filter(s => !isDoneSeg(s)).reduce((a, s) => a + (s.end - s.start) / SR, 0);
+  hideNotice();
+  renderTranscript(true);
+  refreshUI();
+  keepAwake(true);
+
+  const n = state.segments.length;
+  let current = -1;
+  try {
+    setStatus('Preparando el modelo…', '');
+    setProgress(null);
+    await ensureModel(state.runOpts, signal);
+    updateProgress();
+    for (let i = 0; i < n; i++) {
+      const s = state.segments[i];
+      if (isDoneSeg(s)) continue;
+      current = i;
+      s.status = 'active';
+      setStatus(n > 1 ? `Transcribiendo la parte ${i + 1} de ${n}…` : 'Transcribiendo…');
+      drawWave();
+      els.statusAside.textContent = etaText();
+      const r = await transcribeSegment(i, signal);
+      s.text = r.text; s.status = r.status; s.partial = '';
+      renderSeg(i); updateEmpty(); drawWave();
+      updateProgress();
+      els.statusAside.textContent = etaText();
+    }
+    current = -1;
+    const took = (performance.now() - state.startedAt) / 1000;
+    setStatus(`Transcripción terminada en ${fmtDuration(took)}.`, '');
+    setProgress(1);
+  } catch (e) {
+    if (current >= 0) {
+      const s = state.segments[current];
+      s.status = (e.name === 'AbortError') ? 'pending' : 'error';
+      s.partial = '';
+      s.text = s.lines.length ? linesToText(s.lines, state.runOpts) : '';
+      renderSeg(current);
+    }
+    drawWave();
+    if (e.name === 'AbortError') {
+      setStatus(current >= 0 ? `Detenido en la parte ${current + 1} de ${n}. Pulsa Continuar para seguir desde ahí.` : 'Detenido.', '');
+    } else {
+      console.error(e);
+      setStatus(current >= 0 ? `Se ha parado en la parte ${current + 1} de ${n}.` : 'Se ha parado la transcripción.', '');
+      if (e instanceof WhisperError && e.kind === 'download') setModelStatus('error', 'Descarga interrumpida. Lo ya descargado se conserva.');
+      else if (e instanceof WhisperError && e.kind !== 'start') setModelStatus('error', 'Ha fallado el modelo. Mira el aviso de abajo.');
+      showNotice(friendly(e), e.message && e.message !== e.kind ? e.message : '');
+      fillReport(e);
+    }
+  } finally {
+    state.running = false;
+    state.controller = null;
+    keepAwake(false);
+    updateEmpty();
+    refreshUI();
+  }
+}
+
+/* ---------- exportación ---------- */
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
+function flash(btn, label) {
+  const old = btn.dataset.label || btn.textContent;
+  btn.dataset.label = old;
+  btn.textContent = label;
+  setTimeout(() => { btn.textContent = old; }, 1600);
+}
+
+els.copy.addEventListener('click', async () => {
+  const t = currentText();
+  if (!t) return;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) { /* nada */ }
+    ta.remove();
+  }
+  flash(els.copy, 'Copiado');
+});
+els.copyReport.addEventListener('click', async () => {
+  const t = els.reportText.textContent;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) { /* nada */ }
+    ta.remove();
+  }
+  flash(els.copyReport, 'Informe copiado');
+});
+els.dlTxt.addEventListener('click', () => {
+  const t = currentText();
+  if (!t) return;
+  download(`${state.base}_transcripcion.txt`, new Blob(['\ufeff' + t.replace(/\n/g, '\r\n')], { type: 'text/plain;charset=utf-8' }));
+});
+els.dlDocx.addEventListener('click', () => {
+  const t = currentText();
+  if (!t) return;
+  const fecha = new Date().toLocaleDateString('es-ES');
+  const meta = `Archivo: ${state.file ? state.file.name : ''}. Duración: ${fmtDuration(state.duration)}. Transcrito el ${fecha} con ${modelName(state.runOpts ? state.runOpts.model : els.model.value)}.`;
+  const bytes = buildDocx({ title: state.base, meta, summary: null, transcript: t });
+  download(`${state.base}_transcripcion.docx`, new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+});
+
+/* ---------- estado de los controles ---------- */
+function refreshUI() {
+  const busy = state.running;
+  const segs = state.segments;
+  const someDone = segs.some(s => isDoneSeg(s) || s.winIdx > 0), allDone = segs.length > 0 && segs.every(isDoneSeg);
+
+  els.start.hidden = busy;
+  els.stop.hidden = !busy;
+  els.start.disabled = !state.pcm || state.preparing || busy;
+  els.start.textContent = allDone ? 'Transcribir de nuevo' : (someDone ? 'Continuar' : 'Transcribir');
+  els.start.title = !state.pcm ? 'Elige primero un vídeo o un audio' : '';
+
+  [els.model, els.device, els.lang, els.optTs, els.terms, els.pickFile].forEach(x => { x.disabled = busy; });
+
+  const hasText = !!currentText().trim();
+  els.copy.disabled = !hasText || busy;
+  els.dlTxt.disabled = !hasText || busy;
+  els.dlDocx.disabled = !hasText || busy;
+  els.edit.disabled = !hasText || busy;
+}
+
+/* ---------- eventos ---------- */
+function onModelChoice() {
+  lsSet(LS.model, els.model.value);
+  lsSet(LS.dev, els.device.value);
+  setModelStatus('idle', IDLE_MODEL_MSG);
+}
+els.model.addEventListener('change', onModelChoice);
+els.device.addEventListener('change', onModelChoice);
+els.lang.addEventListener('change', () => lsSet(LS.lang, els.lang.value));
+els.optTs.addEventListener('change', () => lsSet(LS.ts, els.optTs.checked ? '1' : '0'));
+
+els.pickFile.addEventListener('click', () => els.fileInput.click());
+els.dropPick.addEventListener('click', e => { e.stopPropagation(); els.fileInput.click(); });
+els.drop.addEventListener('click', () => els.fileInput.click());
+els.fileInput.addEventListener('change', () => {
+  const f = els.fileInput.files && els.fileInput.files[0];
+  els.fileInput.value = '';
+  if (f) loadFile(f);
+});
+
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { if (e.dataTransfer && Array.from(e.dataTransfer.types || []).indexOf('Files') >= 0) { dragDepth++; els.drop.classList.add('over'); } });
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) els.drop.classList.remove('over'); });
+window.addEventListener('dragover', e => { e.preventDefault(); });
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  dragDepth = 0;
+  els.drop.classList.remove('over');
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+
+els.start.addEventListener('click', startTranscription);
+els.stop.addEventListener('click', () => { if (state.controller) state.controller.abort(); });
+
+window.addEventListener('beforeunload', e => {
+  if (state.running) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* Onda decorativa de la zona de carga */
+(function idleWave() {
+  const svg = $('idleWave');
+  let d = '';
+  for (let i = 0; i < 60; i++) {
+    const x = 3 + i * 6;
+    const a = Math.abs(Math.sin(i * 0.37) * 0.6 + Math.sin(i * 0.11 + 1) * 0.4);
+    const h = 4 + a * 44;
+    d += `<rect x="${x}" y="${(56 - h) / 2}" width="2.5" height="${h}" rx="1.2" fill="currentColor"/>`;
+  }
+  svg.innerHTML = d;
+})();
+
+/* Arranque */
+(async function init() {
+  const lang = lsGet(LS.lang);
+  if (lang && Array.from(els.lang.options).some(o => o.value === lang)) els.lang.value = lang;
+  const ts = lsGet(LS.ts);
+  if (ts !== null) els.optTs.checked = ts === '1';
+  const dev = lsGet(LS.dev);
+  if (dev && Array.from(els.device.options).some(o => o.value === dev)) els.device.value = dev;
+  setModelStatus('idle', IDLE_MODEL_MSG);
+  refreshUI();
+  const gpu = await hasWebGPU();
+  const m = lsGet(LS.model);
+  if (m && MODELS[m]) els.model.value = m;
+  else if (!gpu) els.model.value = 'onnx-community/whisper-base';
+  els.devHint.textContent = gpu
+    ? 'Este navegador permite usar la GPU, que es mucho más rápida.'
+    : 'Este navegador no ofrece GPU (WebGPU): se usará la CPU, bastante más lenta. Con CPU conviene Tiny o Base.';
+})();
+</script>
+</body>
+</html>
